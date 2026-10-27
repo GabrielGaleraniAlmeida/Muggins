@@ -36,6 +36,11 @@
     .back-link:hover { color: #fff; }
     .back-arrow { color: var(--blue-bright); font-size: 21px; line-height: .5; }
     .match-label { color: #a2b8ce; font-size: 9px; font-weight: 750; letter-spacing: .15em; text-transform: uppercase; }
+    .match-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 7px; }
+    .match-control { min-height: 28px; padding: 0 10px; border: 1px solid #46617d; border-radius: 8px; color: #e0ecf8; background: linear-gradient(180deg, #253c57, #172b42); font: inherit; font-size: 10px; font-weight: 800; cursor: pointer; }
+    .match-control.primary { border-color: #7ad0ff; background: linear-gradient(105deg, #168cf0, #1269c3); }
+    .match-control:disabled { opacity: .48; cursor: not-allowed; }
+    .match-tools-note { min-height: 12px; margin: 3px 0 0; color: #a2b8ce; text-align: center; font-size: 8px; }
 
     .opponent-zone { position: relative; z-index: 1; height: clamp(142px, 19vh, 190px); flex: 0 0 auto; }
     .opponent-card { position: absolute; top: 58px; left: clamp(22px, 5vw, 84px); min-width: 145px; display: flex; align-items: center; gap: 12px; padding: 11px 17px; border: 1px solid #78b8eb30; border-radius: 14px; background: linear-gradient(145deg, #10253eeb, #0b192be8); box-shadow: 0 9px 24px #0006, inset 0 1px #c5e8ff12; backdrop-filter: blur(14px); }
@@ -125,8 +130,11 @@
       .quote-note { left: 1.5%; width: 105px; }
     }
     @media (max-width: 700px) {
-      .topbar { top: 11px; left: 13px; right: 13px; }
+      .topbar { top: 11px; left: 13px; right: 13px; gap: 8px; }
       .match-label { font-size: 8px; }
+      .match-controls { gap: 4px; margin-top: 5px; }
+      .match-control { min-height: 25px; padding: 0 7px; border-radius: 6px; font-size: 9px; }
+      .match-tools-note { font-size: 7px; }
       .opponent-zone { height: 133px; }
       .opponent-card { top: 42px; left: 14px; min-width: 112px; gap: 7px; padding: 8px; }
       .opponent-card .avatar { width: 30px; height: 30px; }
@@ -201,6 +209,11 @@
           <button class="action primary" id="buy" type="button" disabled>Comprar</button>
           <button class="action" id="pass" type="button" disabled>Passar</button>
         </div>
+        <div class="match-controls" aria-label="Controles da partida">
+          <button class="match-control" id="finish-match" type="button" disabled title="A API não oferece desistência manual.">Encerrar</button>
+          <button class="match-control primary" id="restart-match" type="button" disabled title="Disponível quando a partida terminar.">Reiniciar</button>
+        </div>
+        <p class="match-tools-note" id="match-controls-note">Encerramento depende das regras da API</p>
         <p class="selected-caption" id="selected-caption" aria-live="polite"></p>
       </div>
     </section>

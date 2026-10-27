@@ -228,11 +228,17 @@
     const rightButton = $("#play-right");
     const buyButton = $("#buy");
     const passButton = $("#pass");
+    const finishButton = $("#finish-match");
+    const restartButton = $("#restart-match");
 
     leftButton.addEventListener("click", () => play("left"));
     rightButton.addEventListener("click", () => play("right"));
     buyButton.addEventListener("click", () => submitAction("buy"));
     passButton.addEventListener("click", () => submitAction("pass"));
+    finishButton.addEventListener("click", () => {
+      if (currentMatch?.phase === "Finished") window.location.href = "/";
+    });
+    restartButton.addEventListener("click", restartMatch);
     window.addEventListener("resize", () => {
       if (currentMatch) renderBoard(currentMatch);
     });
@@ -294,9 +300,34 @@
       }
     }
 
+    async function restartMatch() {
+      if (actionInProgress || currentMatch?.phase !== "Finished") return;
+      if (!window.confirm("Criar uma nova partida com a mesma pontuação-alvo?")) return;
+
+      actionInProgress = true;
+      setBusy(restartButton, true, "Abrindo…");
+      setMessage("Criando uma nova partida…");
+      let restartError = null;
+      try {
+        await callApi("/app-api/matches/vs-bot", {
+          method: "POST",
+          body: { targetScore: currentMatch.targetScore }
+        });
+        window.location.replace("/partida.html");
+      } catch (error) {
+        restartError = error.message;
+      } finally {
+        actionInProgress = false;
+        setBusy(restartButton, false);
+        if (currentMatch) renderMatch(currentMatch);
+        if (restartError) setMessage(restartError);
+      }
+    }
+
     function renderMatch(state) {
       if (!state) return;
       if (selectedIndex !== null && selectedIndex >= state.hand.length) selectedIndex = null;
+      const isFinished = state.phase === "Finished";
       $("#match-label").textContent = `Rodada ${state.round} · até ${state.targetScore} pontos`;
       $("#opponent-label").textContent = `${state.botName || "Muggins"} · ${state.botScore} pts`;
       $("#opponent-count").textContent = state.botTileCount;
@@ -307,6 +338,17 @@
       $("#sync-indicator").textContent = "●";
       $("#sync-label").textContent = "Estado confirmado pela API";
       $("#sync-indicator").parentElement.style.background = "conic-gradient(#66d99b 0deg 360deg)";
+      finishButton.disabled = !isFinished || actionInProgress;
+      finishButton.title = isFinished
+        ? "Voltar à sala após o encerramento confirmado pela API."
+        : "A API atual não permite encerrar ou abandonar uma partida em andamento.";
+      restartButton.disabled = !isFinished || actionInProgress;
+      restartButton.title = isFinished
+        ? "Criar uma nova partida com a mesma pontuação-alvo."
+        : "Disponível quando a partida terminar pelas regras da API.";
+      $("#match-controls-note").textContent = isFinished
+        ? "Partida encerrada pela API"
+        : "Encerramento depende das regras da API";
 
       const opponentHand = $("#opponent-hand");
       opponentHand.replaceChildren();
