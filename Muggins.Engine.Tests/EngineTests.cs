@@ -12,6 +12,20 @@ internal static class EngineTests
     {
         TestAssert.Equal(1, MugginsRules.PointsForEnds(new BoardEnds(2, 3)), "A total of five scores one point.");
         TestAssert.Equal(0, MugginsRules.PointsForEnds(new BoardEnds(2, 4)), "A non-multiple of five scores zero.");
+        TestAssert.Equal(3, MugginsRules.PointsForEnds(new BoardEnds(3, 6, rightIsDouble: true)),
+            "An exposed 6|6 counts both halves, making 3 + 12 score three points.");
+
+        var doubleOpening = MugginsRules.ResultingEnds(new BoardEnds(), new Tile(5, 5), MoveSide.Left);
+        TestAssert.Equal(2, MugginsRules.PointsForEnds(doubleOpening),
+            "An opening double contributes its two exposed halves once each.");
+        var extendedDoubleOpening = MugginsRules.ResultingEnds(doubleOpening, new Tile(3, 5), MoveSide.Left);
+        TestAssert.True(extendedDoubleOpening.RightIsDouble,
+            "When one side is covered, the remaining exposed side of the opening double counts twice.");
+
+        var playedAfterDoubleSix = MugginsRules.ResultingEnds(
+            new BoardEnds(4, 6, rightIsDouble: true), new Tile(3, 4), MoveSide.Left);
+        TestAssert.Equal(3, MugginsRules.PointsForEnds(playedAfterDoubleSix),
+            "Playing 3|4 opposite an open 6|6 leaves 3 + 12 and scores three points.");
 
         var plays = MugginsRules.LegalPlays(
             [new Tile(1, 4), new Tile(2, 5)],

@@ -1,0 +1,30 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Muggins.Engine", "Muggins.Engine\Muggins.Engine.csproj", "{A3F6F0C4-15A9-4CB9-A7A0-3640D5B50611}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Muggins.Engine.Tests", "Muggins.Engine.Tests\Muggins.Engine.Tests.csproj", "{F28C9A6D-1011-4F25-B1FA-A46982144022}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Muggins.Web", "Muggins.Web\Muggins.Web.csproj", "{483B11F4-5B82-4E5B-914F-C41DCB6C66C2}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A3F6F0C4-15A9-4CB9-A7A0-3640D5B50611}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A3F6F0C4-15A9-4CB9-A7A0-3640D5B50611}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A3F6F0C4-15A9-4CB9-A7A0-3640D5B50611}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A3F6F0C4-15A9-4CB9-A7A0-3640D5B50611}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F28C9A6D-1011-4F25-B1FA-A46982144022}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F28C9A6D-1011-4F25-B1FA-A46982144022}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F28C9A6D-1011-4F25-B1FA-A46982144022}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F28C9A6D-1011-4F25-B1FA-A46982144022}.Release|Any CPU.Build.0 = Release|Any CPU
+		{483B11F4-5B82-4E5B-914F-C41DCB6C66C2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{483B11F4-5B82-4E5B-914F-C41DCB6C66C2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{483B11F4-5B82-4E5B-914F-C41DCB6C66C2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{483B11F4-5B82-4E5B-914F-C41DCB6C66C2}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

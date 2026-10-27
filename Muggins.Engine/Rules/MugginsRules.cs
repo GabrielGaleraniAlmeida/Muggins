@@ -13,17 +13,25 @@ public static class MugginsRules
         if (ends.IsEmpty)
         {
             // Opening orientation is deterministic; the adapter sends side 0.
-            return new BoardEnds(tile.A, tile.B);
+            return new BoardEnds(tile.A, tile.B, sameDoubleTileAtBothEnds: tile.IsDouble);
         }
 
         if (side == MoveSide.Left)
         {
-            return new BoardEnds(tile.OtherEnd(ends.Left!.Value), ends.Right);
+            return new BoardEnds(
+                tile.OtherEnd(ends.Left!.Value),
+                ends.Right,
+                leftIsDouble: tile.IsDouble,
+                rightIsDouble: ends.SameDoubleTileAtBothEnds || ends.RightIsDouble);
         }
 
         if (side == MoveSide.Right)
         {
-            return new BoardEnds(ends.Left, tile.OtherEnd(ends.Right!.Value));
+            return new BoardEnds(
+                ends.Left,
+                tile.OtherEnd(ends.Right!.Value),
+                leftIsDouble: ends.SameDoubleTileAtBothEnds || ends.LeftIsDouble,
+                rightIsDouble: tile.IsDouble);
         }
 
         throw new ArgumentOutOfRangeException(nameof(side));
@@ -36,7 +44,8 @@ public static class MugginsRules
             return 0;
         }
 
-        var total = ends.Left!.Value + ends.Right!.Value;
+        var total = ends.Left!.Value * (ends.LeftIsDouble ? 2 : 1)
+            + ends.Right!.Value * (ends.RightIsDouble ? 2 : 1);
         return total % 5 == 0 ? total / 5 : 0;
     }
 

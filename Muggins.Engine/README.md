@@ -1,6 +1,6 @@
 # Muggins Engine
 
-Primeiro núcleo em C# para o jogador autônomo do projeto de Dominó Ponta de Quina.
+Motor em C# para o jogador autônomo do projeto de Dominó Ponta de Quina.
 Ele recebe a mão privada e a fase do turno já mapeadas a partir do estado da API,
 calcula jogadas candidatas e escolhe uma ação.
 
@@ -8,10 +8,12 @@ calcula jogadas candidatas e escolhe uma ação.
 
 - Modelo de pedras duplo-seis, pontas da mesa, fases e ações.
 - Encaixes locais à esquerda e à direita.
-- Pontuação estimada pelas duas pontas: múltiplo de cinco vale soma ÷ 5.
+- Pontuação estimada pelas pontas: múltiplo de cinco vale soma ÷ 5; um duplo
+  aberto conta os dois lados da pedra (por exemplo, 6|6 vale 12).
 - Abertura com a pedra obrigatória informada pela API.
-- Estratégia inicial: priorizar pontos, depois preservar opções para a próxima jogada
-  e, em seguida, descartar uma pedra com maior soma.
+- Estratégia heurística determinística: priorizar pontos imediatos, estimar a melhor
+  oportunidade de pontuação no próximo lance, manter opções de encaixe e descartar
+  pedras de maior soma nos desempates.
 - Compra e passagem só são enviadas quando a fase confirmada pela API permite.
 
 ## Limite de responsabilidade
@@ -61,9 +63,10 @@ uma nova decisão.
 
 O Swagger não especifica a ordem e a orientação das pedras em `tabuleiro`. O mapeador
 aceita a abertura com tabuleiro vazio, mas exige um `boardEndsResolver` para estados
-com peças na mesa. Assim, o bot não calcula pontas por uma convenção ainda não
-confirmada. Quando o servidor confirmar a representação, passe uma função que devolva
-as pontas esquerda e direita segundo essa regra.
+com peças na mesa. A interface web registra cada jogada confirmada que ela mesma
+envia, deriva as pontas dessa sequência e confere a quantidade e os valores das pedras
+com a resposta da API. Se uma partida for alterada por outro cliente, o motor pausa
+porque o contrato não permite reconstruir com segurança a orientação das pontas.
 
 ## Exemplo de uso
 
@@ -83,6 +86,8 @@ Console.WriteLine(action);
 O projeto tem como alvo `net8.0` e pode ser aberto diretamente como
 [`Muggins.Engine.csproj`](Muggins.Engine.csproj). `EstimatedPoints` serve apenas
 para a estratégia local; o placar exibido deve vir da resposta confirmada pela API.
+O motor conserva se a ponta aberta é um duplo para calcular corretamente as
+estimativas de jogadas, mas não altera a pontuação oficial enviada pela API.
 
 ## Testes
 

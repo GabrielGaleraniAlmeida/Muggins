@@ -50,17 +50,25 @@ public sealed class MugginsBot
         {
             var resultingEnds = MugginsRules.ResultingEnds(state.Ends, option.Tile, option.Side);
             var remainingHand = RemoveOne(state.Hand, option.Tile);
+            var nextPlays = MugginsRules.LegalPlays(remainingHand, resultingEnds);
+            var followUp = nextPlays
+                .Select(next => MugginsRules.PointsForEnds(
+                    MugginsRules.ResultingEnds(resultingEnds, next.Tile, next.Side)))
+                .DefaultIfEmpty(0)
+                .Max();
 
             return new Candidate(
                 option.Tile,
                 option.Side,
                 MugginsRules.PointsForEnds(resultingEnds),
-                MugginsRules.LegalPlays(remainingHand, resultingEnds).Count);
+                followUp,
+                nextPlays.Count);
         });
 
-        // Score first, retain next-turn options second, shed higher pips third.
+        // Prefer current points, then a likely next scoring opportunity, then flexibility.
         var chosen = candidates
             .OrderByDescending(candidate => candidate.Points)
+            .ThenByDescending(candidate => candidate.BestFollowUpPoints)
             .ThenByDescending(candidate => candidate.NextOptions)
             .ThenByDescending(candidate => candidate.Tile.Total)
             .ThenBy(candidate => candidate.Tile.A)
@@ -90,5 +98,5 @@ public sealed class MugginsBot
         return remaining;
     }
 
-    private sealed record Candidate(Tile Tile, MoveSide Side, int Points, int NextOptions);
+    private sealed record Candidate(Tile Tile, MoveSide Side, int Points, int BestFollowUpPoints, int NextOptions);
 }
