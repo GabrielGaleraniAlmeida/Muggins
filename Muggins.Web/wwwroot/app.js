@@ -233,6 +233,9 @@
     rightButton.addEventListener("click", () => play("right"));
     buyButton.addEventListener("click", () => submitAction("buy"));
     passButton.addEventListener("click", () => submitAction("pass"));
+    window.addEventListener("resize", () => {
+      if (currentMatch) renderBoard(currentMatch);
+    });
     hand.addEventListener("click", (event) => {
       const tileButton = event.target.closest("button[data-index]");
       if (!tileButton || !currentMatch?.isHumanTurn) return;
@@ -315,22 +318,7 @@
       }
       opponentHand.setAttribute("aria-label", `${state.botTileCount} peças do oponente, viradas para baixo`);
 
-      const board = $("#board-chain");
-      board.replaceChildren();
-      state.board.forEach((piece) => {
-        const tile = createDomino(piece.leftValue, piece.rightValue, piece.isDouble);
-        const owner = piece.isBotTile ? "Muggins" : "Você";
-        tile.setAttribute("aria-label", `${piece.leftValue} e ${piece.rightValue}, jogada por ${owner}`);
-        tile.title = `Jogada de ${owner}`;
-        tile.classList.add("board-tile");
-        const badge = document.createElement("span");
-        badge.className = `board-owner ${piece.isBotTile ? "bot" : "human"}`;
-        badge.textContent = piece.isBotTile ? "M" : "EU";
-        badge.setAttribute("aria-hidden", "true");
-        tile.append(badge);
-        board.append(tile);
-      });
-      board.setAttribute("aria-label", `${state.board.length} peça(s) no tabuleiro`);
+      renderBoard(state);
 
       hand.replaceChildren();
       state.hand.forEach((piece, index) => {
@@ -368,6 +356,81 @@
       if (state.phase === "Finished") {
         const winner = state.winnerName || "Empate";
         setMessage(`Partida encerrada · ${winner}`);
+      }
+    }
+
+    function renderBoard(state) {
+      const board = $("#board-chain");
+      const boardTiles = state.board || [];
+      board.replaceChildren();
+      board.setAttribute("aria-label", `${boardTiles.length} peça(s) no tabuleiro`);
+      if (boardTiles.length === 0) return;
+
+      const boardWidth = board.clientWidth || $("#board-zone").clientWidth * 0.94;
+      const boardHeight = $("#board-zone").clientHeight;
+      const tileGap = 4;
+      const rowGap = 8;
+      const availableHeight = Math.max(90, boardHeight * 0.84);
+      const maxColumns = Math.max(1, Math.min(
+        boardTiles.length,
+        Math.floor((boardWidth + tileGap) / (38 + tileGap))
+      ));
+      let columns = 1;
+      let rows = boardTiles.length;
+      let tileWidth = 38;
+      for (let candidateColumns = 1; candidateColumns <= maxColumns; candidateColumns += 1) {
+        const candidateRows = Math.ceil(boardTiles.length / candidateColumns);
+        const widthByColumns = (boardWidth - tileGap * (candidateColumns - 1)) / candidateColumns;
+        let rowHeightFactor = 0;
+        for (let rowIndex = 0; rowIndex < candidateRows; rowIndex += 1) {
+          const rowStart = rowIndex * candidateColumns;
+          const rowEnd = Math.min(rowStart + candidateColumns, boardTiles.length);
+          const hasVerticalTile = boardTiles.slice(rowStart, rowEnd).some((piece) => piece.isDouble);
+          rowHeightFactor += hasVerticalTile ? 1 : 66 / 116;
+        }
+        const widthByRows = (availableHeight - rowGap * (candidateRows - 1)) / rowHeightFactor;
+        const candidateWidth = Math.min(116, widthByColumns, widthByRows);
+        if (candidateWidth > tileWidth) {
+          columns = candidateColumns;
+          rows = candidateRows;
+          tileWidth = candidateWidth;
+        }
+      }
+
+      tileWidth = Math.max(38, tileWidth);
+      const tileHeight = tileWidth * 66 / 116;
+      board.style.setProperty("--board-tile-width", `${tileWidth}px`);
+      board.style.setProperty("--board-tile-height", `${tileHeight}px`);
+      board.style.setProperty("--board-pip-core", `${Math.max(1.7, tileWidth * 0.036)}px`);
+      board.style.setProperty("--board-pip-halo", `${Math.max(2.3, tileWidth * 0.045)}px`);
+
+      for (let rowIndex = 0; rowIndex < rows; rowIndex += 1) {
+        const row = document.createElement("div");
+        const reverse = rowIndex % 2 === 1;
+        row.className = `board-row${reverse ? " reverse" : ""}`;
+        row.setAttribute("role", "group");
+        row.setAttribute("aria-label", `Linha ${rowIndex + 1} da sequência`);
+
+        const start = rowIndex * columns;
+        const end = Math.min(start + columns, boardTiles.length);
+        for (let index = start; index < end; index += 1) {
+          const piece = boardTiles[index];
+          const firstValue = reverse ? piece.rightValue : piece.leftValue;
+          const secondValue = reverse ? piece.leftValue : piece.rightValue;
+          const tile = createDomino(firstValue, secondValue, piece.isDouble);
+          const owner = piece.isBotTile ? "Muggins" : "Você";
+          tile.setAttribute("aria-label", `${firstValue} e ${secondValue}, jogada por ${owner}`);
+          tile.title = `Jogada de ${owner}`;
+          tile.classList.add("board-tile");
+          const badge = document.createElement("span");
+          badge.className = `board-owner ${piece.isBotTile ? "bot" : "human"}`;
+          badge.textContent = piece.isBotTile ? "M" : "EU";
+          badge.setAttribute("aria-hidden", "true");
+          tile.append(badge);
+          row.append(tile);
+        }
+
+        board.append(row);
       }
     }
 
