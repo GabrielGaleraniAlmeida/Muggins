@@ -414,49 +414,62 @@
       const tileGap = 4;
       const rowGap = 8;
       const availableHeight = Math.max(90, boardHeight * 0.84);
-      const maxColumns = Math.max(1, Math.min(
-        boardTiles.length,
-        Math.floor((boardWidth + tileGap) / (38 + tileGap))
-      ));
-      let columns = 1;
-      let rows = boardTiles.length;
+      const maxTileWidth = Math.min(116, boardWidth);
+      let rows = [];
       let tileWidth = 38;
-      for (let candidateColumns = 1; candidateColumns <= maxColumns; candidateColumns += 1) {
-        const candidateRows = Math.ceil(boardTiles.length / candidateColumns);
-        const widthByColumns = (boardWidth - tileGap * (candidateColumns - 1)) / candidateColumns;
-        let rowHeightFactor = 0;
-        for (let rowIndex = 0; rowIndex < candidateRows; rowIndex += 1) {
-          const rowStart = rowIndex * candidateColumns;
-          const rowEnd = Math.min(rowStart + candidateColumns, boardTiles.length);
-          const hasVerticalTile = boardTiles.slice(rowStart, rowEnd).some((piece) => piece.isDouble);
-          rowHeightFactor += hasVerticalTile ? 1 : 66 / 116;
-        }
-        const widthByRows = (availableHeight - rowGap * (candidateRows - 1)) / rowHeightFactor;
-        const candidateWidth = Math.min(116, widthByColumns, widthByRows);
-        if (candidateWidth > tileWidth) {
-          columns = candidateColumns;
+      let bestLayoutScore = -1;
+
+      for (let candidateWidth = maxTileWidth; candidateWidth >= 38; candidateWidth -= 0.5) {
+        const candidateHeight = candidateWidth * 66 / 116;
+        const candidateRows = [];
+        let row = { indices: [], width: 0, height: candidateHeight };
+
+        boardTiles.forEach((piece, index) => {
+          const pieceWidth = piece.isDouble ? candidateHeight : candidateWidth;
+          const pieceHeight = piece.isDouble ? candidateWidth : candidateHeight;
+          const gap = row.indices.length > 0 ? tileGap : 0;
+          if (row.indices.length > 0 && row.width + gap + pieceWidth > boardWidth) {
+            candidateRows.push(row);
+            row = { indices: [], width: 0, height: candidateHeight };
+          }
+
+          row.width += row.indices.length > 0 ? tileGap + pieceWidth : pieceWidth;
+          row.height = Math.max(row.height, pieceHeight);
+          row.indices.push(index);
+        });
+        candidateRows.push(row);
+
+        const totalHeight = candidateRows.reduce((height, candidateRow) => height + candidateRow.height, 0) +
+          rowGap * (candidateRows.length - 1);
+        if (totalHeight > availableHeight) continue;
+
+        const fullRows = candidateRows.filter((candidateRow) =>
+          candidateRow.width >= boardWidth - candidateWidth - tileGap);
+        const rowsToScore = fullRows.length > 0 ? fullRows : candidateRows;
+        const averageFill = rowsToScore.reduce((sum, candidateRow) => sum + candidateRow.width / boardWidth, 0) /
+          rowsToScore.length;
+        const layoutScore = candidateWidth * averageFill;
+        if (layoutScore > bestLayoutScore) {
+          bestLayoutScore = layoutScore;
           rows = candidateRows;
           tileWidth = candidateWidth;
         }
       }
 
-      tileWidth = Math.max(38, tileWidth);
       const tileHeight = tileWidth * 66 / 116;
       board.style.setProperty("--board-tile-width", `${tileWidth}px`);
       board.style.setProperty("--board-tile-height", `${tileHeight}px`);
       board.style.setProperty("--board-pip-core", `${Math.max(1.7, tileWidth * 0.036)}px`);
       board.style.setProperty("--board-pip-halo", `${Math.max(2.3, tileWidth * 0.045)}px`);
 
-      for (let rowIndex = 0; rowIndex < rows; rowIndex += 1) {
+      for (let rowIndex = 0; rowIndex < rows.length; rowIndex += 1) {
         const row = document.createElement("div");
         const reverse = rowIndex % 2 === 1;
         row.className = `board-row${reverse ? " reverse" : ""}`;
         row.setAttribute("role", "group");
         row.setAttribute("aria-label", `Linha ${rowIndex + 1} da sequência`);
 
-        const start = rowIndex * columns;
-        const end = Math.min(start + columns, boardTiles.length);
-        for (let index = start; index < end; index += 1) {
+        for (const index of rows[rowIndex].indices) {
           const piece = boardTiles[index];
           const firstValue = reverse ? piece.rightValue : piece.leftValue;
           const secondValue = reverse ? piece.leftValue : piece.rightValue;
