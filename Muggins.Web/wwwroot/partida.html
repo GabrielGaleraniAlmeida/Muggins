@@ -64,6 +64,9 @@
     .domino::after { content: ""; position: absolute; z-index: 2; inset: 0; border-radius: inherit; background: linear-gradient(135deg, #fff8, transparent 33%, #273f5611 100%); pointer-events: none; }
     .domino.horizontal { width: 116px; height: 66px; }
     .domino.vertical { width: 66px; height: 116px; flex-direction: column; }
+    .board-owner { position: absolute; z-index: 3; top: -9px; right: -7px; min-width: 18px; height: 18px; display: grid; place-items: center; padding: 0 3px; border: 1px solid #eaf6ff; border-radius: 999px; color: #fff; font-size: 8px; font-weight: 900; line-height: 1; box-shadow: 0 2px 5px #0009; }
+    .board-owner.bot { background: linear-gradient(135deg, #a24eeb, #6439bc); }
+    .board-owner.human { background: linear-gradient(135deg, #238edc, #1459a1); }
     .half { --pip-core: 4.2px; --pip-halo: 5.2px; position: relative; flex: 1; min-width: 0; min-height: 0; background-color: #eee8dc; background-repeat: no-repeat; box-shadow: inset 1px 1px 1px #fff9, inset -1px -1px 2px #8c847938; }
     .horizontal .half:first-child { border-radius: 5px 0 0 5px; }
     .horizontal .half:last-child { border-radius: 0 5px 5px 0; }

@@ -26,6 +26,8 @@ O endereço `127.0.0.1` só abre no mesmo computador onde esse comando está rod
 
 O token da conta e as chaves de ativação não são enviados ao navegador. O servidor local os mantém criptografados em `.muggins-data/`; preserve essa pasta enquanto os perfis estiverem ativos na API. A opção “Desconectar e liberar perfis” desativa os dois jogadores depois que a partida termina.
 
+Após sua ação, a tela mostra primeiro o estado e o placar confirmados pela API. O Muggins joga no turno seguinte; as peças na mesa exibem `EU` ou `M` para indicar quem as colocou.
+
 O motor usa o histórico das jogadas enviadas por esta interface para manter as pontas do tabuleiro e confere a lista de pedras contra a API. Se outra ferramenta alterar a partida, ele interrompe a decisão em vez de presumir uma orientação.
 
 Consulte [Muggins.Engine/README.md](Muggins.Engine/README.md) para detalhes das regras e da integração. O projeto de testes permanente fica em `Muggins.Engine.Tests/`.

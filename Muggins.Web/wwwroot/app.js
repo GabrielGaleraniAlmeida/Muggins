@@ -317,7 +317,19 @@
 
       const board = $("#board-chain");
       board.replaceChildren();
-      state.board.forEach((piece) => board.append(createDomino(piece.leftValue, piece.rightValue, piece.isDouble)));
+      state.board.forEach((piece) => {
+        const tile = createDomino(piece.leftValue, piece.rightValue, piece.isDouble);
+        const owner = piece.isBotTile ? "Muggins" : "Você";
+        tile.setAttribute("aria-label", `${piece.leftValue} e ${piece.rightValue}, jogada por ${owner}`);
+        tile.title = `Jogada de ${owner}`;
+        tile.classList.add("board-tile");
+        const badge = document.createElement("span");
+        badge.className = `board-owner ${piece.isBotTile ? "bot" : "human"}`;
+        badge.textContent = piece.isBotTile ? "M" : "EU";
+        badge.setAttribute("aria-hidden", "true");
+        tile.append(badge);
+        board.append(tile);
+      });
       board.setAttribute("aria-label", `${state.board.length} peça(s) no tabuleiro`);
 
       hand.replaceChildren();

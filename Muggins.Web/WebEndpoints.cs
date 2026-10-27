@@ -309,7 +309,7 @@ public static class WebEndpoints
             await lease.SaveAsync(ct);
             await SubmitPendingActionAsync(session, lease, api, token, ct);
 
-            var view = await RefreshMatchAsync(session, lease, api, bot, ct);
+            var view = await RefreshMatchAsync(session, lease, api, bot, ct, runBotTurn: false);
             return Results.Ok(view);
         }, ct));
 
@@ -320,7 +320,8 @@ public static class WebEndpoints
         EncryptedSessionStore.SessionLease lease,
         MugginsApiClient api,
         MugginsBot bot,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool runBotTurn = true)
     {
         var token = RequireToken(session);
         var (humanId, humanKey) = GetCredentials(session, "human");
@@ -370,7 +371,7 @@ public static class WebEndpoints
 
         EnsureKnownBoard(session, humanState);
 
-        if (humanState.Situacao == SituacaoPartida.EmAndamento && humanState.JogadorDoTurnoId == botId)
+        if (runBotTurn && humanState.Situacao == SituacaoPartida.EmAndamento && humanState.JogadorDoTurnoId == botId)
         {
             var botState = await api.GetMatchStateAsync(token, botKey, matchId, botId, cancellationToken);
             EnsureKnownBoard(session, botState);
