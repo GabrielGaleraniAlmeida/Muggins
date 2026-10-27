@@ -408,8 +408,9 @@
       board.setAttribute("aria-label", `${boardTiles.length} peça(s) no tabuleiro`);
       if (boardTiles.length === 0) return;
 
-      const boardWidth = board.clientWidth || $("#board-zone").clientWidth * 0.94;
-      const boardHeight = $("#board-zone").clientHeight;
+      const boardZone = board.closest(".board-zone");
+      const boardWidth = board.clientWidth || (boardZone?.clientWidth || window.innerWidth) * 0.94;
+      const boardHeight = boardZone?.clientHeight || window.innerHeight * 0.5;
       const tileGap = 4;
       const rowGap = 8;
       const availableHeight = Math.max(90, boardHeight * 0.84);
