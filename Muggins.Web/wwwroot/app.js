@@ -546,24 +546,16 @@
       const boardZone = board.closest(".board-zone");
       const boardWidth = board.clientWidth || (boardZone?.clientWidth || window.innerWidth) * 0.94;
       const boardHeight = boardZone?.clientHeight || window.innerHeight * 0.5;
+      const boardZoneHeight = boardZone?.clientHeight || window.innerHeight * 0.5;
       const requestedOpeningIndex = Number.isInteger(state.openingTileIndex)
         ? state.openingTileIndex
         : Math.floor((boardTiles.length - 1) / 2);
       const openingIndex = Math.max(0, Math.min(boardTiles.length - 1, requestedOpeningIndex));
       const tileGap = 0;
-      const rowGap = 0;
       const availableHeight = Math.max(90, boardHeight * 0.84);
       const isDoubleTile = (piece) => piece.leftValue === piece.rightValue;
       let maxTileWidth = Math.min(116, boardWidth);
-      if (boardTiles.length > 10) {
-        // Long runs use the reference's roughly eleven-piece span; each vertical turn continues below its row.
-        const maxTilesAtMinimumSize = Math.max(1,
-          Math.floor((boardWidth + tileGap) / (38 + tileGap)));
-        const targetTilesPerRun = Math.min(11, maxTilesAtMinimumSize);
-        maxTileWidth = Math.min(maxTileWidth,
-          (boardWidth - tileGap * (targetTilesPerRun - 1)) / targetTilesPerRun);
-      }
-      const buildSnakeLayout = (candidateWidth) => {
+      const buildCenteredLayout = (candidateWidth) => {
         const candidateHeight = candidateWidth * 66 / 116;
         const lines = [];
         const turns = [];
@@ -572,98 +564,138 @@
           isDoubleTile(boardTiles[tileIndex]) && !horizontalDoubleIndices.has(tileIndex);
         const pieceWidth = (tileIndex) => isVerticalDouble(tileIndex) ? candidateHeight : candidateWidth;
         const pieceHeight = (tileIndex) => isVerticalDouble(tileIndex) ? candidateWidth : candidateHeight;
-        let index = 0;
-        let direction = 1;
-        let openingPrefixWidth = 0;
-        for (let prefixIndex = 0; prefixIndex < openingIndex; prefixIndex += 1) {
-          openingPrefixWidth += pieceWidth(prefixIndex) + tileGap;
-        }
-        let anchor = Math.max(0, Math.min(
-          boardWidth,
-          boardWidth / 2 - openingPrefixWidth - pieceWidth(openingIndex) / 2
-        ));
-        let nextLineTop = 0;
-        let layoutHeight = 0;
+        // Keep the opening fixed at the table center and snake each side out independently.
+        const rootWidth = pieceWidth(openingIndex);
+        const rootHeight = pieceHeight(openingIndex);
+        const rootLeft = boardWidth / 2 - rootWidth / 2;
+        const rootTop = -rootHeight / 2;
+        lines.push({
+          indices: [openingIndex], left: rootLeft, anchor: rootLeft,
+          width: rootWidth, height: rootHeight, direction: 1,
+          top: rootTop, contentTop: rootTop
+        });
 
-        while (index < boardTiles.length) {
-          const available = direction > 0 ? boardWidth - anchor : anchor;
-          const remainingCount = boardTiles.length - index;
-          let remainingWidth = tileGap * (remainingCount - 1);
-          for (let remainingIndex = index; remainingIndex < boardTiles.length; remainingIndex += 1) {
-            remainingWidth += pieceWidth(remainingIndex);
-          }
-          const indices = [];
-          let lineWidth = 0;
-          let lineHeight = candidateHeight;
+        const buildArm = (sequence, initialDirection, verticalDirection) => {
+          let index = 0;
+          let direction = initialDirection;
+          let anchor = initialDirection > 0 ? rootLeft + rootWidth : rootLeft;
+          let contentTop = -candidateHeight / 2;
 
-          if (remainingWidth <= available) {
-            while (index < boardTiles.length) {
-              const currentPieceWidth = pieceWidth(index);
-              lineWidth += indices.length > 0 ? tileGap + currentPieceWidth : currentPieceWidth;
-              lineHeight = Math.max(lineHeight, pieceHeight(index));
-              indices.push(index);
-              index += 1;
+          while (index < sequence.length) {
+            const available = direction > 0 ? boardWidth - anchor : anchor;
+            if (available <= 0) return false;
+            let remainingWidth = tileGap * (sequence.length - index - 1);
+            for (let remainingIndex = index; remainingIndex < sequence.length; remainingIndex += 1) {
+              remainingWidth += pieceWidth(sequence[remainingIndex]);
             }
-          } else {
-            const turnOverhang = Math.max(0, candidateHeight / 2 - candidateWidth / 4);
-            const turnReserve = Math.max(turnOverhang, candidateWidth / 4);
-            const lineBudget = available - turnReserve;
-            while (index < boardTiles.length) {
-              const currentPieceWidth = pieceWidth(index);
-              const nextWidth = indices.length > 0 ? tileGap + currentPieceWidth : currentPieceWidth;
-              if (lineWidth + nextWidth > lineBudget) break;
-              lineWidth += nextWidth;
-              lineHeight = Math.max(lineHeight, pieceHeight(index));
-              indices.push(index);
-              index += 1;
+
+            const indices = [];
+            let lineWidth = 0;
+            let lineHeight = candidateHeight;
+            if (remainingWidth <= available) {
+              while (index < sequence.length) {
+                const tileIndex = sequence[index++];
+                const width = pieceWidth(tileIndex);
+                lineWidth += indices.length > 0 ? tileGap + width : width;
+                lineHeight = Math.max(lineHeight, pieceHeight(tileIndex));
+                indices.push(tileIndex);
+              }
+            } else {
+              const turnOverhang = Math.max(candidateHeight / 2 - candidateWidth / 4, candidateWidth / 4);
+              const lineBudget = available - turnOverhang;
+              while (index < sequence.length) {
+                const tileIndex = sequence[index];
+                const width = pieceWidth(tileIndex);
+                const nextWidth = indices.length > 0 ? tileGap + width : width;
+                if (lineWidth + nextWidth > lineBudget) {
+                  if (index === sequence.length - 1 && lineWidth + nextWidth <= available) {
+                    index += 1;
+                    lineWidth += nextWidth;
+                    lineHeight = Math.max(lineHeight, pieceHeight(tileIndex));
+                    indices.push(tileIndex);
+                  }
+                  break;
+                }
+
+                index += 1;
+                lineWidth += nextWidth;
+                lineHeight = Math.max(lineHeight, pieceHeight(tileIndex));
+                indices.push(tileIndex);
+              }
+              if (indices.length === 0) return false;
             }
-            if (indices.length === 0 || index + 1 >= boardTiles.length) return null;
+
+            const lineLeft = direction > 0 ? anchor : anchor - lineWidth;
+            const lineTop = contentTop - (lineHeight - candidateHeight) / 2;
+            lines.push({
+              indices, left: lineLeft, anchor, width: lineWidth, height: lineHeight,
+              direction, reverseValues: direction !== initialDirection,
+              top: lineTop, contentTop
+            });
+            if (index >= sequence.length) break;
+
+            const turnIndex = sequence[index];
+            const terminalIndex = indices[indices.length - 1];
+            const terminalOffset = isVerticalDouble(terminalIndex) ? candidateHeight / 2 : candidateWidth / 4;
+            const turnCenter = direction > 0
+              ? lineLeft + lineWidth - terminalOffset
+              : lineLeft + terminalOffset;
+            const turnLeft = turnCenter - candidateHeight / 2;
+            const turnTop = verticalDirection > 0
+              ? contentTop + candidateHeight
+              : contentTop - candidateWidth;
+            turns.push({ index: turnIndex, left: turnLeft, top: turnTop });
+            index += 1;
+            if (index >= sequence.length) break;
+
+            const nextTileIndex = sequence[index];
+            const nextPieceIsDouble = isDoubleTile(boardTiles[nextTileIndex]);
+            if (nextPieceIsDouble) horizontalDoubleIndices.add(nextTileIndex);
+            const nextPieceOffset = nextPieceIsDouble ? candidateWidth / 2 : candidateWidth / 4;
+            anchor = direction > 0
+              ? turnCenter + nextPieceOffset
+              : turnCenter - nextPieceOffset;
+            direction *= -1;
+            contentTop = verticalDirection > 0
+              ? turnTop + candidateWidth
+              : turnTop - candidateHeight;
           }
 
-          const lineLeft = direction > 0 ? anchor : anchor - lineWidth;
-          const lineContentTop = nextLineTop;
-          const lineTop = lineContentTop - (lineHeight - candidateHeight) / 2;
-          lines.push({ indices, left: lineLeft, anchor, width: lineWidth, height: lineHeight, direction, top: lineTop, contentTop: lineContentTop });
-          if (index >= boardTiles.length) {
-            layoutHeight = lineTop + lineHeight;
-            break;
-          }
+          return true;
+        };
 
-          const turnIndex = index;
-          const terminalIndex = indices[indices.length - 1];
-          const terminalOffset = isVerticalDouble(terminalIndex) ? candidateHeight / 2 : candidateWidth / 4;
-          const turnCenter = direction > 0
-            ? lineLeft + lineWidth - terminalOffset
-            : lineLeft + terminalOffset;
-          const turnLeft = turnCenter - candidateHeight / 2;
-          const turnTop = lineContentTop + candidateHeight + rowGap;
-          turns.push({ index: turnIndex, left: turnLeft, top: turnTop });
-          index += 1;
-          const nextPieceIsDouble = isDoubleTile(boardTiles[index]);
-          if (nextPieceIsDouble) horizontalDoubleIndices.add(index);
-          const nextPieceOffset = nextPieceIsDouble ? candidateWidth / 2 : candidateWidth / 4;
-          anchor = direction > 0
-            ? turnCenter + nextPieceOffset
-            : turnCenter - nextPieceOffset;
-          direction *= -1;
-          nextLineTop = turnTop + candidateWidth + rowGap;
+        const leftSequence = [];
+        for (let index = openingIndex - 1; index >= 0; index -= 1) leftSequence.push(index);
+        const rightSequence = [];
+        for (let index = openingIndex + 1; index < boardTiles.length; index += 1) rightSequence.push(index);
+        if (!buildArm(leftSequence, -1, -1) || !buildArm(rightSequence, 1, 1)) return null;
+
+        let minY = Math.min(...lines.map(line => line.top), ...turns.map(turn => turn.top));
+        let maxY = Math.max(...lines.map(line => line.top + line.height),
+          ...turns.map(turn => turn.top + candidateWidth));
+        let minX = Math.min(...lines.map(line => line.left));
+        let maxX = Math.max(...lines.map(line => line.left + line.width));
+        for (const turn of turns) {
+          minX = Math.min(minX, turn.left);
+          maxX = Math.max(maxX, turn.left + candidateHeight);
         }
-
-        const verticalOffset = Math.max(0, -lines[0].top);
-        if (verticalOffset > 0) {
-          for (const line of lines) {
-            line.top += verticalOffset;
-            line.contentTop += verticalOffset;
-          }
-          for (const turn of turns) turn.top += verticalOffset;
-          layoutHeight += verticalOffset;
+        const verticalOffset = -minY;
+        for (const line of lines) {
+          line.top += verticalOffset;
+          line.contentTop += verticalOffset;
         }
+        for (const turn of turns) turn.top += verticalOffset;
+        minY += verticalOffset;
+        maxY += verticalOffset;
 
         return {
           lines,
           turns,
-          height: layoutHeight,
+          height: maxY - minY,
           tileHeight: candidateHeight,
+          minX,
+          maxX,
+          openingCenterY: verticalOffset,
           horizontalDoubleIndices: [...horizontalDoubleIndices]
         };
       };
@@ -672,12 +704,14 @@
       let tileWidth = 38;
       let bestLayoutScore = -1;
       for (let candidateWidth = maxTileWidth; candidateWidth >= 38; candidateWidth -= 0.5) {
-        const candidateLayout = buildSnakeLayout(candidateWidth);
-        if (!candidateLayout || candidateLayout.height > availableHeight) continue;
+        const candidateLayout = buildCenteredLayout(candidateWidth);
+        if (!candidateLayout || candidateLayout.height > availableHeight ||
+          candidateLayout.minX < 0 || candidateLayout.maxX > boardWidth ||
+          candidateLayout.openingCenterY > boardZoneHeight / 2 ||
+          candidateLayout.height - candidateLayout.openingCenterY > boardZoneHeight / 2) continue;
 
-        const rowsToScore = candidateLayout.lines.length > 1
-          ? candidateLayout.lines.slice(0, -1)
-          : candidateLayout.lines;
+        const rowsToScore = candidateLayout.lines.filter(line => line.indices.length > 1);
+        if (rowsToScore.length === 0) rowsToScore.push(candidateLayout.lines[0]);
         const averageFill = rowsToScore.reduce((sum, line) =>
           sum + Math.min(1, line.width / boardWidth), 0) / rowsToScore.length;
         const layoutScore = candidateWidth * averageFill * averageFill;
@@ -689,17 +723,8 @@
       }
 
       if (!layout) {
-        const fallbackHeight = tileWidth * 66 / 116;
-        const indices = boardTiles.map((_, index) => index);
-        const fallbackRowHeight = boardTiles.some(isDoubleTile) ? tileWidth : fallbackHeight;
-        const fallbackWidth = boardTiles.reduce((width, piece, index) =>
-          width + (index > 0 ? tileGap : 0) + (isDoubleTile(piece) ? fallbackHeight : tileWidth), 0);
-        layout = {
-          lines: [{ indices, left: 0, anchor: 0, width: fallbackWidth, height: fallbackRowHeight, direction: 1, top: 0 }],
-          turns: [],
-          height: fallbackRowHeight,
-          tileHeight: fallbackHeight
-        };
+        layout = buildCenteredLayout(38);
+        tileWidth = 38;
       }
       const tileHeight = layout?.tileHeight || tileWidth * 66 / 116;
       const horizontalDoubleIndices = new Set(layout.horizontalDoubleIndices || []);
@@ -726,27 +751,11 @@
 
         return { x: boardWidth / 2, y: layout.height / 2 };
       })();
-      let minX = Math.min(...layout.lines.map((line) => line.left));
-      let maxX = Math.max(...layout.lines.map((line) => line.left + line.width));
-      let minY = Math.min(...layout.lines.map((line) => line.top));
-      let maxY = Math.max(...layout.lines.map((line) => line.top + line.height));
-      for (const turn of layout.turns) {
-        minX = Math.min(minX, turn.left);
-        maxX = Math.max(maxX, turn.left + tileHeight);
-        minY = Math.min(minY, turn.top);
-        maxY = Math.max(maxY, turn.top + tileWidth);
-      }
-      const boardZoneWidth = boardZone?.clientWidth || window.innerWidth;
-      const boardZoneHeight = boardZone?.clientHeight || window.innerHeight * 0.5;
-      const baseLeft = (boardZoneWidth - boardWidth) / 2;
       const targetOffsetX = boardWidth / 2 - openingCenter.x;
-      const minOffsetX = -baseLeft - minX;
-      const maxOffsetX = boardZoneWidth - baseLeft - maxX;
-      const offsetX = Math.max(minOffsetX, Math.min(maxOffsetX, targetOffsetX));
       const targetOffsetY = layout.height / 2 - openingCenter.y;
-      const minOffsetY = layout.height / 2 - boardZoneHeight / 2 - minY;
-      const maxOffsetY = layout.height / 2 + boardZoneHeight / 2 - maxY;
-      const offsetY = Math.max(minOffsetY, Math.min(maxOffsetY, targetOffsetY));
+      // Keep the opening at the board-zone center; candidate sizing above keeps the snake inside it.
+      const offsetX = targetOffsetX;
+      const offsetY = targetOffsetY;
       board.style.transform = `translate(calc(-50% + ${offsetX}px), calc(-50% + ${offsetY}px))`;
       board.style.setProperty("--board-tile-width", `${tileWidth}px`);
       board.style.setProperty("--board-tile-height", `${tileHeight}px`);
@@ -757,7 +766,7 @@
       for (let rowIndex = 0; rowIndex < layout.lines.length; rowIndex += 1) {
         const line = layout.lines[rowIndex];
         const row = document.createElement("div");
-        const reverse = line.direction < 0;
+        const reverse = line.reverseValues ?? line.direction < 0;
         row.className = `board-row${reverse ? " reverse" : ""}`;
         row.style.position = "absolute";
         row.style.left = "0";
