@@ -436,7 +436,8 @@
         let index = 0;
         let direction = 1;
         let anchor = 0;
-        let nextTop = 0;
+        let nextLineTop = 0;
+        let layoutHeight = 0;
 
         while (index < boardTiles.length) {
           const available = direction > 0 ? boardWidth - anchor : anchor;
@@ -459,7 +460,8 @@
             }
           } else {
             const turnOverhang = Math.max(0, candidateHeight / 2 - candidateWidth / 4);
-            const lineBudget = available - turnOverhang;
+            const turnReserve = Math.max(turnOverhang, candidateWidth / 4);
+            const lineBudget = available - turnReserve;
             while (index < boardTiles.length) {
               const currentPieceWidth = pieceWidth(index);
               const nextWidth = indices.length > 0 ? tileGap + currentPieceWidth : currentPieceWidth;
@@ -473,10 +475,11 @@
           }
 
           const lineLeft = direction > 0 ? anchor : anchor - lineWidth;
-          const lineTop = nextTop;
-          lines.push({ indices, left: lineLeft, anchor, width: lineWidth, height: lineHeight, direction, top: lineTop });
+          const lineContentTop = nextLineTop;
+          const lineTop = lineContentTop - (lineHeight - candidateHeight) / 2;
+          lines.push({ indices, left: lineLeft, anchor, width: lineWidth, height: lineHeight, direction, top: lineTop, contentTop: lineContentTop });
           if (index >= boardTiles.length) {
-            nextTop = lineTop + lineHeight;
+            layoutHeight = lineTop + lineHeight;
             break;
           }
 
@@ -487,7 +490,7 @@
             ? lineLeft + lineWidth - terminalOffset
             : lineLeft + terminalOffset;
           const turnLeft = turnCenter - candidateHeight / 2;
-          const turnTop = lineTop + lineHeight + rowGap;
+          const turnTop = lineContentTop + candidateHeight + rowGap;
           turns.push({ index: turnIndex, left: turnLeft, top: turnTop });
           index += 1;
           const nextPieceIsDouble = isDoubleTile(boardTiles[index]);
@@ -497,13 +500,23 @@
             ? turnCenter + nextPieceOffset
             : turnCenter - nextPieceOffset;
           direction *= -1;
-          nextTop = turnTop + candidateWidth + rowGap;
+          nextLineTop = turnTop + candidateWidth + rowGap;
+        }
+
+        const verticalOffset = Math.max(0, -lines[0].top);
+        if (verticalOffset > 0) {
+          for (const line of lines) {
+            line.top += verticalOffset;
+            line.contentTop += verticalOffset;
+          }
+          for (const turn of turns) turn.top += verticalOffset;
+          layoutHeight += verticalOffset;
         }
 
         return {
           lines,
           turns,
-          height: nextTop,
+          height: layoutHeight,
           tileHeight: candidateHeight,
           horizontalDoubleIndices: [...horizontalDoubleIndices]
         };
