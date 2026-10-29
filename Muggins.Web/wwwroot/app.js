@@ -364,7 +364,7 @@
 
       hand.replaceChildren();
       state.hand.forEach((piece, index) => {
-        const button = createDomino(piece.valorA, piece.valorB, piece.valorA === piece.valorB, true);
+        const button = createDomino(piece.valorA, piece.valorB, true, true);
         button.dataset.index = String(index);
         button.dataset.a = String(piece.valorA);
         button.dataset.b = String(piece.valorB);
@@ -630,9 +630,9 @@
     }
   }
 
-  function createDomino(valueA, valueB, isDouble, button = false) {
+  function createDomino(valueA, valueB, isVertical, button = false) {
     const element = document.createElement(button ? "button" : "div");
-    element.className = `domino ${isDouble ? "vertical" : "horizontal"}${button ? " hand-tile" : ""}`;
+    element.className = `domino ${isVertical ? "vertical" : "horizontal"}${button ? " hand-tile" : ""}`;
     if (button) element.type = "button";
     element.setAttribute("aria-label", `${valueA} e ${valueB}`);
     for (const value of [valueA, valueB]) {
