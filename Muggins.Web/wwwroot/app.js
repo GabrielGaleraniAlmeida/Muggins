@@ -337,6 +337,7 @@
     let currentMatch = null;
     let loading = false;
     let actionInProgress = false;
+    let scoreNoticeTimer = null;
     const hand = $("#player-hand");
     const message = $("#game-message");
     const leftButton = $("#play-left");
@@ -371,7 +372,9 @@
       if (loading || actionInProgress) return;
       loading = true;
       try {
-        currentMatch = await callApi("/app-api/match");
+        const updatedMatch = await callApi("/app-api/match");
+        showScoreNotice(currentMatch, updatedMatch);
+        currentMatch = updatedMatch;
         renderMatch(currentMatch);
         setMessage("");
       } catch (error) {
@@ -398,10 +401,12 @@
       disableActions();
       setMessage(kind === "play" ? "Enviando sua jogada…" : "Enviando ação…");
       try {
-        currentMatch = await callApi("/app-api/match/action", {
+        const updatedMatch = await callApi("/app-api/match/action", {
           method: "POST",
           body: { kind, ...details }
         });
+        showScoreNotice(currentMatch, updatedMatch);
+        currentMatch = updatedMatch;
         selectedIndex = null;
         renderMatch(currentMatch);
         setMessage("");
@@ -813,6 +818,30 @@
     function setMessage(text) {
       message.textContent = text;
       message.hidden = !text;
+    }
+
+    function showScoreNotice(previous, updated) {
+      if (!previous || !updated) return;
+      const changes = [
+        { name: updated.humanName || "Você", points: updated.humanScore - previous.humanScore },
+        { name: updated.botName || "Adversário", points: updated.botScore - previous.botScore }
+      ].filter(change => change.points > 0);
+      if (changes.length === 0) return;
+
+      const notice = $("#score-notice");
+      $("#score-notice-player").textContent = changes.map(change => change.name).join(" · ");
+      $("#score-notice-points").textContent = changes
+        .map(change => `+${change.points} ${change.points === 1 ? "ponto" : "pontos"}`)
+        .join(" · ");
+      notice.hidden = false;
+      notice.classList.remove("show");
+      void notice.offsetWidth;
+      notice.classList.add("show");
+      window.clearTimeout(scoreNoticeTimer);
+      scoreNoticeTimer = window.setTimeout(() => {
+        notice.classList.remove("show");
+        notice.hidden = true;
+      }, 3600);
     }
   }
 
