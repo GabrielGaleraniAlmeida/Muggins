@@ -17,6 +17,7 @@ public sealed class BrowserSessionData
     public int Round { get; set; }
     public int? LeftEnd { get; set; }
     public int? RightEnd { get; set; }
+    public int? OpeningTileIndex { get; set; }
     public List<PlacedTile> Board { get; set; } = [];
     public PendingApiAction? PendingAction { get; set; }
 
@@ -26,6 +27,7 @@ public sealed class BrowserSessionData
         Round = 0;
         LeftEnd = null;
         RightEnd = null;
+        OpeningTileIndex = null;
         Board.Clear();
         PendingAction = null;
     }
