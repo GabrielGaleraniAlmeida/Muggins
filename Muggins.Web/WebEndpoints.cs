@@ -307,9 +307,16 @@ public static class WebEndpoints
             var pending = ValidateHumanAction(body, turn, humanId, state.VersaoEstado);
             session.PendingAction = pending;
             await lease.SaveAsync(ct);
-            await SubmitPendingActionAsync(session, lease, api, token, ct);
+            var confirmation = await SubmitPendingActionAsync(session, lease, api, token, ct);
 
-            var view = await RefreshMatchAsync(session, lease, api, bot, ct, runBotTurn: false);
+            var view = await RefreshMatchAsync(
+                session,
+                lease,
+                api,
+                bot,
+                ct,
+                runBotTurn: false,
+                confirmedHumanState: confirmation.Estado);
             return Results.Ok(view);
         }, ct));
 
@@ -321,7 +328,8 @@ public static class WebEndpoints
         MugginsApiClient api,
         MugginsBot bot,
         CancellationToken cancellationToken,
-        bool runBotTurn = true)
+        bool runBotTurn = true,
+        EstadoPartidaParticipanteDto? confirmedHumanState = null)
     {
         var token = RequireToken(session);
         var (humanId, humanKey) = GetCredentials(session, "human");
@@ -330,10 +338,16 @@ public static class WebEndpoints
 
         if (session.PendingAction is not null)
         {
-            await SubmitPendingActionAsync(session, lease, api, token, cancellationToken);
+            var pendingRole = session.PendingAction.Role;
+            var confirmation = await SubmitPendingActionAsync(session, lease, api, token, cancellationToken);
+            if (pendingRole == "human")
+            {
+                confirmedHumanState = confirmation.Estado ?? confirmedHumanState;
+            }
         }
 
-        var humanState = await api.GetMatchStateAsync(token, humanKey, matchId, humanId, cancellationToken);
+        var humanState = confirmedHumanState ?? await api.GetMatchStateAsync(
+            token, humanKey, matchId, humanId, cancellationToken);
         if (humanState.Situacao == SituacaoPartida.AguardandoInicio)
         {
             var joinedPlayerIds = (humanState.Participantes ?? [])
@@ -474,7 +488,7 @@ public static class WebEndpoints
             _ => throw new InvalidOperationException("O motor retornou uma ação incompatível com o turno.")
         };
 
-    private static async Task SubmitPendingActionAsync(
+    private static async Task<ConfirmacaoAcaoPartidaDto> SubmitPendingActionAsync(
         BrowserSessionData session,
         EncryptedSessionStore.SessionLease lease,
         MugginsApiClient api,
@@ -488,7 +502,7 @@ public static class WebEndpoints
 
         try
         {
-            _ = await (pending.Kind switch
+            var confirmation = await (pending.Kind switch
             {
                 "play" => api.PlayAsync(token, activationKey, matchId, new JogarRequestDto
                 {
@@ -511,6 +525,7 @@ public static class WebEndpoints
 
             session.PendingAction = null;
             await lease.SaveAsync(cancellationToken);
+            return confirmation;
 
             AcaoRequestDto MakeActionRequest() => new()
             {
@@ -549,19 +564,24 @@ public static class WebEndpoints
             session.Board.Add(new PlacedTile(tile.A, tile.B, playerId));
             session.LeftEnd = resulting.Left;
             session.RightEnd = resulting.Right;
+            session.OpeningTileIndex = 0;
             return;
         }
 
         var matchingEnd = side == MoveSide.Left ? ends.Left!.Value : ends.Right!.Value;
         var outsideEnd = tile.OtherEnd(matchingEnd);
         var newEnds = MugginsRules.ResultingEnds(ends, tile, side);
+        var openingTileIndex = session.OpeningTileIndex
+            ?? Math.Max(0, (session.Board.Count - 1) / 2);
         if (side == MoveSide.Left)
         {
             session.Board.Insert(0, new PlacedTile(outsideEnd, matchingEnd, playerId));
+            session.OpeningTileIndex = openingTileIndex + 1;
         }
         else
         {
             session.Board.Add(new PlacedTile(matchingEnd, outsideEnd, playerId));
+            session.OpeningTileIndex = openingTileIndex;
         }
 
         session.LeftEnd = newEnds.Left;
@@ -582,6 +602,7 @@ public static class WebEndpoints
             session.Board.Clear();
             session.LeftEnd = null;
             session.RightEnd = null;
+            session.OpeningTileIndex = null;
             session.PendingAction = null;
         }
 
@@ -655,6 +676,11 @@ public static class WebEndpoints
             ProximaAcaoPartida.Encerrada => "Finished",
             _ => "Wait"
         } : state.Situacao == SituacaoPartida.Encerrada ? "Finished" : "Wait";
+        var ends = GetBoardEnds(session);
+        var endsTotal = ends.IsEmpty
+            ? 0
+            : ends.Left!.Value * (ends.LeftIsDouble ? 2 : 1)
+                + ends.Right!.Value * (ends.RightIsDouble ? 2 : 1);
 
         return new MatchView(
             state.PartidaId,
@@ -675,6 +701,8 @@ public static class WebEndpoints
             state.VencedorId == humanId ? human?.Nome : state.VencedorId == botId ? bot?.Nome : null,
             session.LeftEnd,
             session.RightEnd,
+            session.OpeningTileIndex,
+            endsTotal,
             session.Board.Select(tile => new BoardTileView(
                 tile.LeftValue,
                 tile.RightValue,
