@@ -130,6 +130,15 @@
     .profile-action.primary { border-color: #74cfff; color: #fff; background: linear-gradient(105deg, #168cf0, #1269c3); font-weight: 800; text-align: center; }
     .target-label { display: grid; gap: 5px; color: #9eafc3; font-size: 10px; text-align: left; }
     .target-label select { width: 100%; padding: 9px 10px; border: 1px solid #47749a70; border-radius: 8px; color: #f3f8fd; background: #0a192a; }
+    .online-separator { margin: 4px 0; color: #8298ae; text-align: center; font-size: 9px; }
+    .join-room-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; }
+    .join-room-row input { min-width: 0; padding: 9px 8px; border: 1px solid #47749a70; border-radius: 8px; color: #f3f8fd; background: #0a192a; font-size: 10px; }
+    .join-room-row button, .small-action { padding: 7px 9px; border: 1px solid #47749a70; border-radius: 8px; color: #ddecf9; background: #10243b; cursor: pointer; font-size: 10px; font-weight: 700; }
+    .join-room-row button:disabled, .profile-action:disabled, .small-action:disabled { cursor: not-allowed; opacity: .55; }
+    .online-room { display: grid; gap: 6px; padding: 10px; border: 1px solid #47749a70; border-radius: 10px; background: #08182a; text-align: left; }
+    .online-room[hidden] { display: none !important; }
+    .online-room-status { margin: 0; color: #c3dbf0; font-size: 10px; line-height: 1.4; }
+    .online-code { overflow-wrap: anywhere; color: #8fd6ff; font-family: ui-monospace, monospace; font-size: 10px; }
     .profile-detail { display: block; min-width: 0; overflow: hidden; color: #dceafa; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
     .auth-overlay { position: fixed; z-index: 20; inset: 0; display: grid; place-items: center; padding: 18px; background: #030a13d9; backdrop-filter: blur(12px); }
     .auth-overlay[hidden] { display: none; }
@@ -144,7 +153,7 @@
     .auth-message { min-height: 18px; margin: 12px 0 0; color: #8fd6ff; font-size: 11px; }
     .auth-close { position: absolute; top: 14px; right: 15px; width: 34px; height: 34px; border: 1px solid #41688b; border-radius: 9px; color: #ddecf9; background: #0a1a2b; cursor: pointer; }
     .disconnect-button { color: #a9bfd5; background: transparent; border: 0; text-decoration: underline; cursor: pointer; font-size: 10px; }
-    #start-match[hidden], #resume-match[hidden], #connect-open[hidden], #prepare-human[hidden], #prepare-bot[hidden], #disconnect[hidden] { display: none !important; }
+    #start-match[hidden], #resume-match[hidden], #connect-open[hidden], #prepare-human[hidden], #prepare-bot[hidden], #disconnect[hidden], #create-online[hidden], #start-online[hidden] { display: none !important; }
     .profile-panel { max-height: 88%; overflow-y: auto; }
 
     @media (max-width: 1180px) and (min-width: 761px) {
@@ -238,9 +247,9 @@
 
       <section class="rooms-panel" aria-labelledby="rooms-title">
         <h1 class="panel-heading" id="rooms-title">Partidas</h1>
-        <p class="panel-subtitle" id="lobby-subtitle">Uma partida individual contra o jogador Muggins</p>
+        <p class="panel-subtitle" id="lobby-subtitle">Jogue contra Muggins ou convide outra pessoa</p>
         <div class="room-list" id="room-list" aria-live="polite"></div>
-        <p class="lobby-status" id="lobby-status">Conecte sua conta para preparar os dois perfis e abrir uma partida.</p>
+        <p class="lobby-status" id="lobby-status">Conecte sua conta FIAP e prepare seu perfil para entrar em uma sala.</p>
       </section>
 
       <aside class="profile-panel" aria-label="Seu perfil e mesa selecionada">
@@ -248,7 +257,7 @@
         <h2 class="profile-name" id="profile-name">Você</h2>
         <p class="profile-status" id="profile-status">Conta não conectada</p>
         <div class="profile-divider"></div>
-        <p class="details-title">Perfis desta partida</p>
+        <p class="details-title">Perfis disponíveis</p>
         <div class="detail-row"><span class="profile-detail" id="human-profile">Você: não preparado</span></div>
         <div class="detail-row"><span class="profile-detail" id="bot-profile">Muggins: não preparado</span></div>
         <div class="setup-actions">
@@ -259,6 +268,18 @@
             <select id="target-score"><option value="50">50 pontos</option><option value="100" selected>100 pontos</option><option value="150">150 pontos</option></select>
           </label>
           <button class="profile-action primary" id="start-match" type="button" disabled>Jogar contra Muggins ›</button>
+          <button class="profile-action" id="create-online" type="button" disabled>Criar sala para outra pessoa</button>
+          <div class="online-separator">ou entre em uma sala existente</div>
+          <div class="join-room-row">
+            <input id="join-room-code" type="text" inputmode="text" autocomplete="off" placeholder="Código da sala (GUID)" aria-label="Código da sala">
+            <button id="join-online" type="button" disabled>Entrar</button>
+          </div>
+          <div class="online-room" id="online-room" hidden>
+            <p class="online-room-status" id="online-room-status"></p>
+            <strong class="online-code" id="online-room-code"></strong>
+            <button class="small-action" id="copy-room-code" type="button">Copiar código</button>
+            <button class="profile-action primary" id="start-online" type="button" hidden>Iniciar com o outro jogador ›</button>
+          </div>
           <a class="enter-link" id="resume-match" href="partida.html" hidden>Continuar partida ›</a>
           <button class="disconnect-button" id="disconnect" type="button" hidden>Desconectar e liberar perfis</button>
         </div>
