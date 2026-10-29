@@ -61,6 +61,13 @@
     .ends-counter span { color: #a9c1d7; font-size: 8px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
     .ends-counter strong { color: #e7f6ff; font-size: 24px; line-height: 1; font-variant-numeric: tabular-nums; text-shadow: 0 0 14px #36a8ff60; }
     .ends-counter small { color: #7fb9df; font-size: 9px; font-variant-numeric: tabular-nums; }
+    .score-notice { position: absolute; z-index: 6; top: 112px; right: clamp(16px, 4vw, 58px); width: min(210px, calc(100% - 32px)); display: grid; justify-items: end; gap: 3px; padding: 10px 13px; border: 1px solid #66d99b88; border-radius: 12px; color: #f2fff8; background: linear-gradient(145deg, #123d37f2, #0a2427f2); box-shadow: 0 8px 22px #0007, 0 0 20px #45d89622, inset 0 1px #e7fff51c; text-align: right; }
+    .score-notice[hidden] { display: none !important; }
+    .score-notice.show { animation: score-notice-in .24s ease-out both; }
+    .score-notice-label { color: #9cdec0; font-size: 8px; font-weight: 850; letter-spacing: .14em; text-transform: uppercase; }
+    .score-notice strong { max-width: 100%; overflow-wrap: anywhere; font-size: 12px; }
+    .score-notice-points { color: #70e5a4; font-size: 16px; font-weight: 900; font-variant-numeric: tabular-nums; }
+    @keyframes score-notice-in { from { opacity: 0; transform: translateY(-7px) scale(.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
     .board-chain { position: absolute; top: 50%; left: 50%; width: min(94%, 1260px); display: flex; flex-direction: column; align-items: stretch; gap: 0; transform: translate(-50%, -50%); filter: drop-shadow(0 9px 6px #000b); }
     .board-row { width: 100%; display: flex; align-items: center; justify-content: flex-start; gap: 0; }
     .board-row.reverse { flex-direction: row-reverse; }
@@ -149,6 +156,10 @@
       .ends-counter span { font-size: 7px; }
       .ends-counter strong { font-size: 19px; }
       .ends-counter small { font-size: 8px; }
+      .score-notice { top: 78px; right: 12px; width: min(155px, calc(100% - 24px)); gap: 2px; padding: 7px 9px; border-radius: 9px; }
+      .score-notice-label { font-size: 6px; }
+      .score-notice strong { font-size: 9px; }
+      .score-notice-points { font-size: 13px; }
       .turn-indicator { bottom: 4%; min-width: 155px; padding: 10px 20px; font-size: 15px; }
       .player-zone { min-height: 190px; grid-template-columns: 1fr auto; gap: 8px; padding: 12px 12px 17px; }
       .you-card { grid-column: 1; grid-row: 1; min-height: 46px; border: 0; padding: 0; background: none; }
@@ -192,6 +203,11 @@
         <span>Quinas</span>
         <strong id="ends-total">0</strong>
         <small id="ends-values">0 + 0</small>
+      </div>
+      <div class="score-notice" id="score-notice" role="status" aria-live="polite" hidden>
+        <span class="score-notice-label">Ponto marcado</span>
+        <strong id="score-notice-player"></strong>
+        <span class="score-notice-points" id="score-notice-points"></span>
       </div>
       <div class="board-chain" id="board-chain" aria-label="Peças jogadas no tabuleiro" aria-live="polite"></div>
       <div class="turn-indicator" id="turn-indicator">Conectando…</div>
