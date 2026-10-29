@@ -27,6 +27,13 @@ internal static class EngineTests
         TestAssert.Equal(3, MugginsRules.PointsForEnds(playedAfterDoubleSix),
             "Playing 3|4 opposite an open 6|6 leaves 3 + 12 and scores three points.");
 
+        var openingSixes = MugginsRules.ResultingEnds(new BoardEnds(), new Tile(6, 6), MoveSide.Left);
+        var afterSixTwo = MugginsRules.ResultingEnds(openingSixes, new Tile(2, 6), MoveSide.Left);
+        var afterDoubleTwo = MugginsRules.ResultingEnds(afterSixTwo, new Tile(2, 2), MoveSide.Left);
+        var afterTwoThree = MugginsRules.ResultingEnds(afterDoubleTwo, new Tile(2, 3), MoveSide.Left);
+        TestAssert.Equal(3, MugginsRules.PointsForEnds(afterTwoThree),
+            "After 6|6, 6|2, and 2|2, playing 2|3 leaves 12 + 3 and scores three points.");
+
         var plays = MugginsRules.LegalPlays(
             [new Tile(1, 4), new Tile(2, 5)],
             new BoardEnds(1, 5));
