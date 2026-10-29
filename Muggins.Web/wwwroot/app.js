@@ -417,13 +417,12 @@
       const isDoubleTile = (piece) => piece.leftValue === piece.rightValue;
       let maxTileWidth = Math.min(116, boardWidth);
       if (boardTiles.length > 10) {
-        // Long runs use the reference's roughly eleven-piece span and reserve the corner for a vertical tile.
-        const minimumTurnWidth = 38 * 66 / 116;
+        // Long runs use the reference's roughly eleven-piece span; each vertical turn continues below its row.
         const maxTilesAtMinimumSize = Math.max(1,
-          Math.floor((boardWidth - minimumTurnWidth + tileGap) / (38 + tileGap)));
+          Math.floor((boardWidth + tileGap) / (38 + tileGap)));
         const targetTilesPerRun = Math.min(11, maxTilesAtMinimumSize);
         maxTileWidth = Math.min(maxTileWidth,
-          (boardWidth - tileGap * (targetTilesPerRun - 1)) / (targetTilesPerRun + 66 / 116));
+          (boardWidth - tileGap * (targetTilesPerRun - 1)) / targetTilesPerRun);
       }
       const buildSnakeLayout = (candidateWidth) => {
         const candidateHeight = candidateWidth * 66 / 116;
@@ -455,7 +454,8 @@
               index += 1;
             }
           } else {
-            const lineBudget = available - candidateHeight;
+            const turnOverhang = Math.max(0, candidateHeight / 2 - candidateWidth / 4);
+            const lineBudget = available - turnOverhang;
             while (index < boardTiles.length) {
               const pieceWidth = isDoubleTile(boardTiles[index]) ? candidateHeight : candidateWidth;
               const pieceHeight = isDoubleTile(boardTiles[index]) ? candidateWidth : candidateHeight;
@@ -472,21 +472,34 @@
           const lineLeft = direction > 0 ? anchor : anchor - lineWidth;
           const lineTop = nextTop;
           lines.push({ indices, left: lineLeft, anchor, width: lineWidth, height: lineHeight, direction, top: lineTop });
-          nextTop += lineHeight + rowGap;
-          if (index >= boardTiles.length) break;
+          if (index >= boardTiles.length) {
+            nextTop = lineTop + lineHeight;
+            break;
+          }
 
           const turnIndex = index;
-          const turnLeft = direction > 0 ? lineLeft + lineWidth : lineLeft - candidateHeight;
-          turns.push({ index: turnIndex, left: turnLeft, lineIndex: lines.length - 1 });
+          const terminalPiece = boardTiles[indices[indices.length - 1]];
+          const terminalOffset = isDoubleTile(terminalPiece) ? candidateHeight / 2 : candidateWidth / 4;
+          const turnCenter = direction > 0
+            ? lineLeft + lineWidth - terminalOffset
+            : lineLeft + terminalOffset;
+          const turnLeft = turnCenter - candidateHeight / 2;
+          const turnTop = lineTop + lineHeight + rowGap;
+          turns.push({ index: turnIndex, left: turnLeft, top: turnTop });
           index += 1;
-          anchor = direction > 0 ? turnLeft : turnLeft + candidateHeight;
+          const nextPieceIsDouble = isDoubleTile(boardTiles[index]);
+          const nextPieceOffset = nextPieceIsDouble ? 0 : candidateWidth / 4;
+          anchor = direction > 0
+            ? turnCenter + nextPieceOffset
+            : turnCenter - nextPieceOffset;
           direction *= -1;
+          nextTop = turnTop + candidateWidth + rowGap;
         }
 
         return {
           lines,
           turns,
-          height: nextTop - rowGap,
+          height: nextTop,
           tileHeight: candidateHeight
         };
       };
@@ -501,18 +514,8 @@
         const rowsToScore = candidateLayout.lines.length > 1
           ? candidateLayout.lines.slice(0, -1)
           : candidateLayout.lines;
-        const turnByLine = new Map(candidateLayout.turns.map((turn) => [turn.lineIndex, turn]));
-        const averageFill = rowsToScore.reduce((sum, line, lineIndex) => {
-          let left = line.left;
-          let right = line.left + line.width;
-          if (line.direction > 0) right += turnByLine.has(lineIndex) ? candidateLayout.tileHeight : 0;
-          else left -= turnByLine.has(lineIndex) ? candidateLayout.tileHeight : 0;
-          if (lineIndex > 0) {
-            if (line.direction > 0) left -= candidateLayout.tileHeight;
-            else right += candidateLayout.tileHeight;
-          }
-          return sum + Math.min(1, (right - left) / boardWidth);
-        }, 0) / rowsToScore.length;
+        const averageFill = rowsToScore.reduce((sum, line) =>
+          sum + Math.min(1, line.width / boardWidth), 0) / rowsToScore.length;
         const layoutScore = candidateWidth * averageFill * averageFill;
         if (layoutScore > bestLayoutScore) {
           bestLayoutScore = layoutScore;
@@ -537,7 +540,6 @@
       const tileHeight = layout?.tileHeight || tileWidth * 66 / 116;
       board.style.setProperty("--board-tile-width", `${tileWidth}px`);
       board.style.setProperty("--board-tile-height", `${tileHeight}px`);
-      board.style.setProperty("--board-turn-height", `${2 * (tileHeight + rowGap)}px`);
       board.style.height = `${layout?.height || tileHeight}px`;
       board.style.setProperty("--board-pip-core", `${Math.max(1.7, tileWidth * 0.036)}px`);
       board.style.setProperty("--board-pip-halo", `${Math.max(2.3, tileWidth * 0.045)}px`);
@@ -547,6 +549,9 @@
         const row = document.createElement("div");
         const reverse = line.direction < 0;
         row.className = `board-row${reverse ? " reverse" : ""}`;
+        row.style.position = "absolute";
+        row.style.left = "0";
+        row.style.top = `${line.top}px`;
         row.setAttribute("role", "group");
         row.setAttribute("aria-label", `Linha ${rowIndex + 1} da sequência`);
         if (reverse) row.style.paddingRight = `${boardWidth - line.anchor}px`;
@@ -574,18 +579,14 @@
 
       for (const turn of layout.turns) {
         const piece = boardTiles[turn.index];
-        // PlacedTile values follow chain order: A connects above, and B continues below the turn.
+        // PlacedTile values follow chain order: A connects from the row above, and B continues below.
         const tile = createDomino(piece.leftValue, piece.rightValue, true);
         const owner = piece.isBotTile ? "Muggins" : "Você";
         tile.setAttribute("aria-label", `${piece.leftValue} e ${piece.rightValue}, jogada por ${owner}; peça de virada`);
         tile.title = `Jogada de ${owner} · virada da sequência`;
         tile.classList.add("board-tile", "turn-connector");
         tile.style.left = `${turn.left}px`;
-        const currentLine = layout.lines[turn.lineIndex];
-        const nextLine = layout.lines[turn.lineIndex + 1];
-        const connectorHeight = currentLine.height + nextLine.height + 2 * rowGap;
-        tile.style.height = `${connectorHeight}px`;
-        tile.style.top = `${currentLine.top + currentLine.height / 2 - connectorHeight / 4}px`;
+        tile.style.top = `${turn.top}px`;
         const badge = document.createElement("span");
         badge.className = `board-owner ${piece.isBotTile ? "bot" : "human"}`;
         badge.textContent = piece.isBotTile ? "M" : "EU";
