@@ -13,6 +13,8 @@ public sealed class BrowserSessionData
     public Guid? BotPlayerId { get; set; }
     public Dictionary<Guid, string> ActivationKeys { get; set; } = [];
     public Guid? MatchId { get; set; }
+    public string MatchMode { get; set; } = "Bot";
+    public bool IsMatchHost { get; set; }
     public int TargetScore { get; set; } = 100;
     public int Round { get; set; }
     public int? LeftEnd { get; set; }
@@ -24,6 +26,8 @@ public sealed class BrowserSessionData
     public void ResetMatch()
     {
         MatchId = null;
+        MatchMode = "Bot";
+        IsMatchHost = false;
         Round = 0;
         LeftEnd = null;
         RightEnd = null;
