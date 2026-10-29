@@ -571,6 +571,7 @@
         row.style.position = "absolute";
         row.style.left = "0";
         row.style.top = `${line.top}px`;
+        row.style.zIndex = String(rowIndex * 2 + 1);
         row.setAttribute("role", "group");
         row.setAttribute("aria-label", `Linha ${rowIndex + 1} da sequência`);
         if (reverse) row.style.paddingRight = `${boardWidth - line.anchor}px`;
@@ -597,7 +598,8 @@
         board.append(row);
       }
 
-      for (const turn of layout.turns) {
+      for (let turnIndex = 0; turnIndex < layout.turns.length; turnIndex += 1) {
+        const turn = layout.turns[turnIndex];
         const piece = boardTiles[turn.index];
         // PlacedTile values follow chain order: A connects from the row above, and B continues below.
         const tile = createDomino(piece.leftValue, piece.rightValue, true);
@@ -607,6 +609,7 @@
         tile.classList.add("board-tile", "turn-connector");
         tile.style.left = `${turn.left}px`;
         tile.style.top = `${turn.top}px`;
+        tile.style.zIndex = String(turnIndex * 2 + 2);
         const badge = document.createElement("span");
         badge.className = `board-owner ${piece.isBotTile ? "bot" : "human"}`;
         badge.textContent = piece.isBotTile ? "M" : "EU";
