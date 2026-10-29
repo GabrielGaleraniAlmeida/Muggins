@@ -334,6 +334,18 @@
       $("#human-name").textContent = state.humanName || "Você";
       $("#human-score").textContent = state.humanScore;
       $("#human-count").textContent = state.humanTileCount;
+      const boardTiles = state.board || [];
+      const singleOpeningDouble = boardTiles.length === 1 && boardTiles[0].isDouble;
+      const leftEndCount = state.leftEnd === null
+        ? 0
+        : state.leftEnd * (boardTiles.length > 1 && boardTiles[0]?.isDouble ? 2 : 1);
+      const rightEndCount = state.rightEnd === null
+        ? 0
+        : state.rightEnd * (boardTiles.length > 1 && boardTiles[boardTiles.length - 1]?.isDouble ? 2 : 1);
+      $("#ends-total").textContent = String(state.endsTotal ?? leftEndCount + rightEndCount);
+      $("#ends-values").textContent = singleOpeningDouble
+        ? `${state.leftEnd} + ${state.rightEnd}`
+        : `${leftEndCount} + ${rightEndCount}`;
       $("#turn-indicator").textContent = turnText(state);
       $("#sync-indicator").textContent = "●";
       $("#sync-label").textContent = "Estado confirmado pela API";
@@ -406,11 +418,18 @@
       const boardTiles = state.board || [];
       board.replaceChildren();
       board.setAttribute("aria-label", `${boardTiles.length} peça(s) no tabuleiro`);
-      if (boardTiles.length === 0) return;
+      if (boardTiles.length === 0) {
+        board.style.transform = "translate(-50%, -50%)";
+        return;
+      }
 
       const boardZone = board.closest(".board-zone");
       const boardWidth = board.clientWidth || (boardZone?.clientWidth || window.innerWidth) * 0.94;
       const boardHeight = boardZone?.clientHeight || window.innerHeight * 0.5;
+      const requestedOpeningIndex = Number.isInteger(state.openingTileIndex)
+        ? state.openingTileIndex
+        : Math.floor((boardTiles.length - 1) / 2);
+      const openingIndex = Math.max(0, Math.min(boardTiles.length - 1, requestedOpeningIndex));
       const tileGap = 0;
       const rowGap = 0;
       const availableHeight = Math.max(90, boardHeight * 0.84);
@@ -435,7 +454,14 @@
         const pieceHeight = (tileIndex) => isVerticalDouble(tileIndex) ? candidateWidth : candidateHeight;
         let index = 0;
         let direction = 1;
-        let anchor = 0;
+        let openingPrefixWidth = 0;
+        for (let prefixIndex = 0; prefixIndex < openingIndex; prefixIndex += 1) {
+          openingPrefixWidth += pieceWidth(prefixIndex) + tileGap;
+        }
+        let anchor = Math.max(0, Math.min(
+          boardWidth,
+          boardWidth / 2 - openingPrefixWidth - pieceWidth(openingIndex) / 2
+        ));
         let nextLineTop = 0;
         let layoutHeight = 0;
 
@@ -557,6 +583,51 @@
       }
       const tileHeight = layout?.tileHeight || tileWidth * 66 / 116;
       const horizontalDoubleIndices = new Set(layout.horizontalDoubleIndices || []);
+      const pieceWidth = (tileIndex) =>
+        isDoubleTile(boardTiles[tileIndex]) && !horizontalDoubleIndices.has(tileIndex) ? tileHeight : tileWidth;
+      const openingCenter = (() => {
+        for (const turn of layout.turns) {
+          if (turn.index === openingIndex) {
+            return { x: turn.left + tileHeight / 2, y: turn.top + tileWidth / 2 };
+          }
+        }
+
+        for (const line of layout.lines) {
+          if (!line.indices.includes(openingIndex)) continue;
+          let cursor = line.direction > 0 ? line.left : line.left + line.width;
+          for (const index of line.indices) {
+            const width = pieceWidth(index);
+            const left = line.direction > 0 ? cursor : cursor - width;
+            if (line.direction > 0) cursor += width;
+            else cursor = left;
+            if (index === openingIndex) return { x: left + width / 2, y: line.top + line.height / 2 };
+          }
+        }
+
+        return { x: boardWidth / 2, y: layout.height / 2 };
+      })();
+      let minX = Math.min(...layout.lines.map((line) => line.left));
+      let maxX = Math.max(...layout.lines.map((line) => line.left + line.width));
+      let minY = Math.min(...layout.lines.map((line) => line.top));
+      let maxY = Math.max(...layout.lines.map((line) => line.top + line.height));
+      for (const turn of layout.turns) {
+        minX = Math.min(minX, turn.left);
+        maxX = Math.max(maxX, turn.left + tileHeight);
+        minY = Math.min(minY, turn.top);
+        maxY = Math.max(maxY, turn.top + tileWidth);
+      }
+      const boardZoneWidth = boardZone?.clientWidth || window.innerWidth;
+      const boardZoneHeight = boardZone?.clientHeight || window.innerHeight * 0.5;
+      const baseLeft = (boardZoneWidth - boardWidth) / 2;
+      const targetOffsetX = boardWidth / 2 - openingCenter.x;
+      const minOffsetX = -baseLeft - minX;
+      const maxOffsetX = boardZoneWidth - baseLeft - maxX;
+      const offsetX = Math.max(minOffsetX, Math.min(maxOffsetX, targetOffsetX));
+      const targetOffsetY = layout.height / 2 - openingCenter.y;
+      const minOffsetY = layout.height / 2 - boardZoneHeight / 2 - minY;
+      const maxOffsetY = layout.height / 2 + boardZoneHeight / 2 - maxY;
+      const offsetY = Math.max(minOffsetY, Math.min(maxOffsetY, targetOffsetY));
+      board.style.transform = `translate(calc(-50% + ${offsetX}px), calc(-50% + ${offsetY}px))`;
       board.style.setProperty("--board-tile-width", `${tileWidth}px`);
       board.style.setProperty("--board-tile-height", `${tileHeight}px`);
       board.style.height = `${layout?.height || tileHeight}px`;
