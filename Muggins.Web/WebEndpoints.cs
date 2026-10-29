@@ -99,7 +99,8 @@ public static class WebEndpoints
             if (string.IsNullOrWhiteSpace(session.AccessToken))
             {
                 return Results.Ok(new LobbyView(false, null, null, null, false,
-                    session.MatchId, session.TargetScore, []));
+                    session.MatchId, session.TargetScore, [], session.MatchMode, session.IsMatchHost,
+                    null, 0, false));
             }
 
             var profiles = await api.ListPlayersAsync(session.AccessToken, ct);
@@ -107,6 +108,7 @@ public static class WebEndpoints
             var bot = FindProfile(profiles, session.BotPlayerId);
             var waiting = await api.ListAvailableMatchesAsync(session.AccessToken, ct);
             var visibleMatchId = session.MatchId;
+            EstadoPartidaParticipanteDto? currentMatchState = null;
             if (visibleMatchId is { } currentMatchId &&
                 human is not null &&
                 session.ActivationKeys.TryGetValue(human.JogadorId, out var humanActivationKey))
@@ -119,6 +121,10 @@ public static class WebEndpoints
                     {
                         visibleMatchId = null;
                     }
+                    else
+                    {
+                        currentMatchState = matchState;
+                    }
                 }
                 catch (MugginsApiException exception) when (exception.StatusCode == HttpStatusCode.NotFound)
                 {
@@ -129,7 +135,19 @@ public static class WebEndpoints
             var canStart = human is not null && bot is not null &&
                 session.ActivationKeys.ContainsKey(human.JogadorId) &&
                 session.ActivationKeys.ContainsKey(bot.JogadorId) &&
-                human.JogadorId != bot.JogadorId;
+                human.JogadorId != bot.JogadorId &&
+                visibleMatchId is null;
+
+            var participants = currentMatchState?.Participantes ?? [];
+            var opponent = participants.FirstOrDefault(player => player.JogadorId != session.HumanPlayerId);
+            var canStartOnline = session.MatchMode == "Online" && session.IsMatchHost &&
+                currentMatchState?.Situacao == SituacaoPartida.AguardandoInicio &&
+                participants.Count == 2 && human is not null &&
+                session.ActivationKeys.ContainsKey(human.JogadorId);
+
+            var visibleWaiting = visibleMatchId is { } activeId
+                ? waiting.Where(match => match.PartidaId != activeId).ToArray()
+                : waiting;
 
             return Results.Ok(new LobbyView(
                 true,
@@ -139,7 +157,12 @@ public static class WebEndpoints
                 canStart,
                 visibleMatchId,
                 session.TargetScore,
-                waiting));
+                visibleWaiting,
+                session.MatchMode,
+                session.IsMatchHost,
+                opponent?.Nome,
+                participants.Count,
+                canStartOnline));
         }, ct));
 
         app.MapPost("/app-api/players/prepare", (PreparePlayerBody body, HttpContext context,
@@ -191,6 +214,108 @@ public static class WebEndpoints
             profile = await api.ActivatePlayerAsync(token, playerId.Value, key, ct);
             await lease.SaveAsync(ct);
             return Results.Ok(new { role, player = ToSummary(profile, session) });
+        }, ct));
+
+        app.MapPost("/app-api/matches/online/create", (StartMachineMatchBody body, HttpContext context,
+            EncryptedSessionStore sessions, MugginsApiClient api, CancellationToken ct) => ProtectAsync(async () =>
+        {
+            await using var lease = await sessions.OpenAsync(context, ct);
+            var session = lease.Data;
+            var token = RequireToken(session);
+            var (humanId, humanKey) = GetCredentials(session, "human");
+            ValidateTargetScore(body.TargetScore);
+            await EnsurePreviousMatchFinishedAsync(session, token, humanId, humanKey, api, ct);
+
+            session.ResetMatch();
+            session.MatchMode = "Online";
+            session.IsMatchHost = true;
+            session.TargetScore = body.TargetScore;
+            await lease.SaveAsync(ct);
+
+            var created = await api.CreateMatchAsync(token, humanKey, new CriarPartidaRequestDto
+            {
+                PontuacaoAlvo = body.TargetScore,
+                JogadorId = humanId
+            }, ct);
+
+            session.MatchId = created.PartidaId;
+            session.Round = created.NumeroRodada;
+            await lease.SaveAsync(ct);
+            return Results.Ok(new { matchId = created.PartidaId, targetScore = body.TargetScore });
+        }, ct));
+
+        app.MapPost("/app-api/matches/online/join", (JoinOnlineMatchBody body, HttpContext context,
+            EncryptedSessionStore sessions, MugginsApiClient api, CancellationToken ct) => ProtectAsync(async () =>
+        {
+            await using var lease = await sessions.OpenAsync(context, ct);
+            var session = lease.Data;
+            var token = RequireToken(session);
+            var (humanId, humanKey) = GetCredentials(session, "human");
+            if (body.MatchId == Guid.Empty)
+            {
+                throw new WebRequestException(StatusCodes.Status400BadRequest, "Informe o código da sala.");
+            }
+
+            await EnsurePreviousMatchFinishedAsync(session, token, humanId, humanKey, api, ct);
+            var available = await api.ListAvailableMatchesAsync(token, ct);
+            var match = available.FirstOrDefault(item => item.PartidaId == body.MatchId);
+            if (match is null)
+            {
+                throw new WebRequestException(StatusCodes.Status404NotFound,
+                    "Essa sala não está mais aguardando um jogador. Atualize a lista e tente outra.");
+            }
+
+            var joined = await api.JoinMatchAsync(token, humanKey, match.PartidaId, new IngressarRequestDto
+            {
+                VersaoEsperada = match.VersaoEstado,
+                ChaveIdempotencia = Guid.NewGuid(),
+                JogadorId = humanId
+            }, ct);
+
+            session.ResetMatch();
+            session.MatchMode = "Online";
+            session.IsMatchHost = false;
+            session.MatchId = match.PartidaId;
+            session.TargetScore = match.PontuacaoAlvo;
+            var state = joined.Estado ?? await api.GetMatchStateAsync(token, humanKey, match.PartidaId, humanId, ct);
+            session.Round = state.NumeroRodada;
+            EnsureKnownBoard(session, state);
+            await lease.SaveAsync(ct);
+            return Results.Ok(new { matchId = match.PartidaId, targetScore = match.PontuacaoAlvo });
+        }, ct));
+
+        app.MapPost("/app-api/matches/online/start", (HttpContext context,
+            EncryptedSessionStore sessions, MugginsApiClient api, CancellationToken ct) => ProtectAsync(async () =>
+        {
+            await using var lease = await sessions.OpenAsync(context, ct);
+            var session = lease.Data;
+            if (session.MatchMode != "Online" || !session.IsMatchHost)
+            {
+                throw new WebRequestException(StatusCodes.Status403Forbidden,
+                    "Somente quem criou a sala pode iniciar a partida.");
+            }
+
+            var token = RequireToken(session);
+            var (humanId, humanKey) = GetCredentials(session, "human");
+            var matchId = RequireMatch(session);
+            var state = await api.GetMatchStateAsync(token, humanKey, matchId, humanId, ct);
+            if (state.Situacao != SituacaoPartida.AguardandoInicio || state.Participantes?.Count != 2)
+            {
+                throw new WebRequestException(StatusCodes.Status409Conflict,
+                    "A partida só pode começar quando o outro jogador tiver entrado na sala.");
+            }
+
+            var started = await api.StartMatchAsync(token, humanKey, matchId, new AcaoRequestDto
+            {
+                VersaoEsperada = state.VersaoEstado,
+                ChaveIdempotencia = Guid.NewGuid(),
+                JogadorId = humanId
+            }, ct);
+            var startedState = started.Estado ?? await api.GetMatchStateAsync(token, humanKey, matchId, humanId, ct);
+            session.Round = startedState.NumeroRodada;
+            EnsureKnownBoard(session, startedState);
+            await lease.SaveAsync(ct);
+            return Results.Ok(new { matchId, started = startedState.Situacao == SituacaoPartida.EmAndamento });
         }, ct));
 
         app.MapPost("/app-api/matches/vs-bot", (StartMachineMatchBody body, HttpContext context,
@@ -331,6 +456,11 @@ public static class WebEndpoints
         bool runBotTurn = true,
         EstadoPartidaParticipanteDto? confirmedHumanState = null)
     {
+        if (session.MatchMode == "Online")
+        {
+            return await RefreshOnlineMatchAsync(session, lease, api, cancellationToken, confirmedHumanState);
+        }
+
         var token = RequireToken(session);
         var (humanId, humanKey) = GetCredentials(session, "human");
         var (botId, botKey) = GetCredentials(session, "bot");
@@ -402,6 +532,31 @@ public static class WebEndpoints
         }
 
         return BuildMatchView(session, humanState, humanId, botId);
+    }
+
+    private static async Task<MatchView> RefreshOnlineMatchAsync(
+        BrowserSessionData session,
+        EncryptedSessionStore.SessionLease lease,
+        MugginsApiClient api,
+        CancellationToken cancellationToken,
+        EstadoPartidaParticipanteDto? confirmedHumanState = null)
+    {
+        var token = RequireToken(session);
+        var (humanId, humanKey) = GetCredentials(session, "human");
+        var matchId = RequireMatch(session);
+
+        if (session.PendingAction is not null)
+        {
+            var confirmation = await SubmitPendingActionAsync(session, lease, api, token, cancellationToken);
+            confirmedHumanState = confirmation.Estado ?? confirmedHumanState;
+        }
+
+        var state = confirmedHumanState ?? await api.GetMatchStateAsync(
+            token, humanKey, matchId, humanId, cancellationToken);
+        EnsureKnownBoard(session, state);
+        var opponentId = state.Participantes?.FirstOrDefault(player => player.JogadorId != humanId)?.JogadorId
+            ?? Guid.Empty;
+        return BuildMatchView(session, state, humanId, opponentId);
     }
 
     private static PendingApiAction ValidateHumanAction(
@@ -611,8 +766,13 @@ public static class WebEndpoints
 
         if (apiBoard.Count != session.Board.Count || !SameTileMultiset(apiBoard, session.Board))
         {
+            if (session.MatchMode == "Online" && TrySyncOnlineBoard(session, state, apiBoard))
+            {
+                return;
+            }
+
             throw new WebRequestException(StatusCodes.Status409Conflict,
-                "O tabuleiro da API não corresponde às jogadas registradas por esta sessão. Comece uma nova partida por esta tela para que o motor possa continuar.");
+                "Não consegui sincronizar as peças novas desta partida. Atualize a tela; se continuar, volte à sala e entre novamente pelo código da partida.");
         }
 
         if (session.Board.Count == 0)
@@ -626,6 +786,164 @@ public static class WebEndpoints
                 "A orientação das pontas não está disponível nesta sessão. O motor não vai adivinhar uma jogada.");
         }
     }
+
+    private static bool TrySyncOnlineBoard(
+        BrowserSessionData session,
+        EstadoPartidaParticipanteDto state,
+        IReadOnlyList<PecaPartidaDto> apiBoard)
+    {
+        var localCounts = session.Board
+            .GroupBy(tile => TileKey(tile.LeftValue, tile.RightValue))
+            .ToDictionary(group => group.Key, group => group.Count(), StringComparer.Ordinal);
+        var additions = new List<Tile>();
+        foreach (var piece in apiBoard)
+        {
+            var key = TileKey(piece.ValorA, piece.ValorB);
+            if (localCounts.TryGetValue(key, out var count))
+            {
+                if (count == 1) localCounts.Remove(key);
+                else localCounts[key] = count - 1;
+            }
+            else
+            {
+                additions.Add(new Tile(piece.ValorA, piece.ValorB));
+            }
+        }
+
+        if (localCounts.Count != 0 || additions.Count == 0)
+        {
+            return false;
+        }
+
+        var humanId = session.HumanPlayerId;
+        var opponentId = state.Participantes?.FirstOrDefault(player => player.JogadorId != humanId)?.JogadorId;
+        if (opponentId is null)
+        {
+            return false;
+        }
+
+        if (session.Board.Count == 0)
+        {
+            if (!TryBuildEulerBoard(apiBoard, opponentId.Value, out var recoveredBoard, out var left, out var right))
+            {
+                return false;
+            }
+
+            session.Board = recoveredBoard;
+            session.LeftEnd = left;
+            session.RightEnd = right;
+            session.OpeningTileIndex = Math.Max(0, (recoveredBoard.Count - 1) / 2);
+            return true;
+        }
+
+        return TryAppendOnlineMoves(session, additions, opponentId.Value);
+    }
+
+    private static bool TryAppendOnlineMoves(
+        BrowserSessionData session,
+        List<Tile> remaining,
+        Guid opponentId)
+    {
+        if (remaining.Count == 0)
+        {
+            return true;
+        }
+
+        var tried = new HashSet<string>(StringComparer.Ordinal);
+        for (var index = 0; index < remaining.Count; index++)
+        {
+            var tile = remaining[index];
+            var key = TileKey(tile.A, tile.B);
+            if (!tried.Add(key)) continue;
+
+            var savedBoard = session.Board.ToList();
+            var savedLeft = session.LeftEnd;
+            var savedRight = session.RightEnd;
+            var savedOpeningIndex = session.OpeningTileIndex;
+            var sides = GetBoardEnds(session).IsEmpty
+                ? new[] { MoveSide.Left }
+                : new[] { MoveSide.Right, MoveSide.Left };
+
+            foreach (var side in sides)
+            {
+                var ends = GetBoardEnds(session);
+                var matching = side == MoveSide.Left ? ends.Left : ends.Right;
+                if (matching is not null && tile.A != matching && tile.B != matching) continue;
+
+                ApplyPlayedTile(session, opponentId, new PendingApiAction(
+                    "opponent", "play", tile.A, tile.B, side, 0, Guid.NewGuid()));
+                remaining.RemoveAt(index);
+                if (TryAppendOnlineMoves(session, remaining, opponentId)) return true;
+                remaining.Insert(index, tile);
+                session.Board = savedBoard.ToList();
+                session.LeftEnd = savedLeft;
+                session.RightEnd = savedRight;
+                session.OpeningTileIndex = savedOpeningIndex;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool TryBuildEulerBoard(
+        IReadOnlyList<PecaPartidaDto> apiBoard,
+        Guid opponentId,
+        out List<PlacedTile> board,
+        out int? leftEnd,
+        out int? rightEnd)
+    {
+        board = [];
+        leftEnd = null;
+        rightEnd = null;
+        if (apiBoard.Count == 0) return true;
+
+        var adjacency = Enumerable.Range(0, 7).Select(_ => new List<int>()).ToArray();
+        var degrees = new int[7];
+        for (var index = 0; index < apiBoard.Count; index++)
+        {
+            var piece = apiBoard[index];
+            adjacency[piece.ValorA].Add(index);
+            if (piece.ValorA != piece.ValorB) adjacency[piece.ValorB].Add(index);
+            degrees[piece.ValorA]++;
+            degrees[piece.ValorB]++;
+        }
+
+        var start = Array.FindIndex(degrees, degree => degree % 2 == 1);
+        if (start < 0) start = Array.FindIndex(degrees, degree => degree > 0);
+        var used = new bool[apiBoard.Count];
+        var stack = new List<(int Value, int EdgeId, int From)> { (start, -1, -1) };
+        var reversed = new List<(int From, int To)>();
+        while (stack.Count > 0)
+        {
+            var current = stack[^1].Value;
+            var edgeId = adjacency[current].FirstOrDefault(edge => !used[edge], -1);
+            if (edgeId < 0)
+            {
+                var popped = stack[^1];
+                stack.RemoveAt(stack.Count - 1);
+                if (popped.EdgeId >= 0) reversed.Add((popped.From, popped.Value));
+                continue;
+            }
+
+            used[edgeId] = true;
+            var piece = apiBoard[edgeId];
+            var next = piece.ValorA == current ? piece.ValorB : piece.ValorA;
+            stack.Add((next, edgeId, current));
+        }
+
+        if (reversed.Count != apiBoard.Count) return false;
+        reversed.Reverse();
+        foreach (var edge in reversed)
+        {
+            board.Add(new PlacedTile(edge.From, edge.To, opponentId));
+        }
+
+        leftEnd = reversed[0].From;
+        rightEnd = reversed[^1].To;
+        return true;
+    }
+
+    private static string TileKey(int a, int b) => a <= b ? $"{a}:{b}" : $"{b}:{a}";
 
     private static bool SameTileMultiset(
         IReadOnlyList<PecaPartidaDto> apiBoard,
@@ -692,7 +1010,7 @@ public static class WebEndpoints
             humanTurn,
             turnName,
             human?.Nome,
-            bot?.Nome,
+            bot?.Nome ?? (session.MatchMode == "Online" ? "Aguardando jogador" : "Muggins"),
             human?.Pontuacao ?? 0,
             human?.QuantidadePedrasNaMao ?? (state.MinhaMao?.Count ?? 0),
             bot?.Pontuacao ?? 0,
@@ -707,7 +1025,7 @@ public static class WebEndpoints
                 tile.LeftValue,
                 tile.RightValue,
                 tile.LeftValue == tile.RightValue,
-                tile.PlayerId == botId)).ToArray(),
+                tile.PlayerId != humanId)).ToArray(),
             state.MinhaMao ?? [],
             state.PedraAberturaObrigatoria);
     }
@@ -762,6 +1080,39 @@ public static class WebEndpoints
         session.MatchId is { } matchId
             ? matchId
             : throw new WebRequestException(StatusCodes.Status404NotFound, "Nenhuma partida está ativa nesta sessão.");
+
+    private static void ValidateTargetScore(int targetScore)
+    {
+        if (targetScore is not (50 or 100 or 150))
+        {
+            throw new WebRequestException(StatusCodes.Status400BadRequest,
+                "Escolha uma partida de 50, 100 ou 150 pontos.");
+        }
+    }
+
+    private static async Task EnsurePreviousMatchFinishedAsync(
+        BrowserSessionData session,
+        string token,
+        Guid playerId,
+        string activationKey,
+        MugginsApiClient api,
+        CancellationToken cancellationToken)
+    {
+        if (session.MatchId is not { } oldMatchId) return;
+        try
+        {
+            var state = await api.GetMatchStateAsync(token, activationKey, oldMatchId, playerId, cancellationToken);
+            if (state.Situacao != SituacaoPartida.Encerrada)
+            {
+                throw new WebRequestException(StatusCodes.Status409Conflict,
+                    "Há uma partida ativa nesta sessão. Continue nela antes de criar ou entrar em outra sala.");
+            }
+        }
+        catch (MugginsApiException exception) when (exception.StatusCode == HttpStatusCode.NotFound)
+        {
+            // A partida anterior foi removida pela API; a sessão pode abrir outra.
+        }
+    }
 
     private static string NormalizeRole(string? value) => value?.Trim().ToLowerInvariant() switch
     {
