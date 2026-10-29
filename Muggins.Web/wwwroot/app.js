@@ -766,21 +766,22 @@
       for (let rowIndex = 0; rowIndex < layout.lines.length; rowIndex += 1) {
         const line = layout.lines[rowIndex];
         const row = document.createElement("div");
-        const reverse = line.reverseValues ?? line.direction < 0;
-        row.className = `board-row${reverse ? " reverse" : ""}`;
+        const reverseLayout = line.direction < 0;
+        const reverseValues = line.reverseValues ?? reverseLayout;
+        row.className = `board-row${reverseLayout ? " reverse" : ""}`;
         row.style.position = "absolute";
         row.style.left = "0";
         row.style.top = `${line.top}px`;
         row.style.zIndex = String(rowIndex * 2 + 1);
         row.setAttribute("role", "group");
         row.setAttribute("aria-label", `Linha ${rowIndex + 1} da sequência`);
-        if (reverse) row.style.paddingRight = `${boardWidth - line.anchor}px`;
+        if (reverseLayout) row.style.paddingRight = `${boardWidth - line.anchor}px`;
         else row.style.paddingLeft = `${line.anchor}px`;
 
         for (const index of line.indices) {
           const piece = boardTiles[index];
-          const firstValue = reverse ? piece.rightValue : piece.leftValue;
-          const secondValue = reverse ? piece.leftValue : piece.rightValue;
+          const firstValue = reverseValues ? piece.rightValue : piece.leftValue;
+          const secondValue = reverseValues ? piece.leftValue : piece.rightValue;
           const isVerticalDouble = isDoubleTile(piece) && !horizontalDoubleIndices.has(index);
           const tile = createDomino(firstValue, secondValue, isVerticalDouble);
           const owner = piece.isBotTile ? (state.botName || "Adversário") : "Você";
