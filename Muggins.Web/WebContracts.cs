@@ -6,6 +6,7 @@ public sealed record RequestTokenBody(string? Email);
 public sealed record ConnectBody(string? Token);
 public sealed record PreparePlayerBody(string? Role, string? Name);
 public sealed record StartMachineMatchBody(int TargetScore);
+public sealed record JoinOnlineMatchBody(Guid MatchId);
 public sealed record HumanActionBody(string? Kind, int? ValueA, int? ValueB, string? Side);
 
 public sealed record PlayerSummary(
@@ -22,7 +23,12 @@ public sealed record LobbyView(
     bool CanStartMachineMatch,
     Guid? ActiveMatchId,
     int TargetScore,
-    IReadOnlyList<PartidaDisponivelDto> WaitingMatches);
+    IReadOnlyList<PartidaDisponivelDto> WaitingMatches,
+    string MatchMode,
+    bool IsMatchHost,
+    string? OpponentName,
+    int MatchParticipants,
+    bool CanStartOnlineMatch);
 
 public sealed record BoardTileView(int LeftValue, int RightValue, bool IsDouble, bool IsBotTile);
 
