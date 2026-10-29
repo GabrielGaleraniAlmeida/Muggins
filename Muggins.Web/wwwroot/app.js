@@ -107,8 +107,22 @@
     $("#prepare-human").addEventListener("click", () => preparePlayer("human", "Você", $("#prepare-human")));
     $("#prepare-bot").addEventListener("click", () => preparePlayer("bot", "Muggins", $("#prepare-bot")));
     $("#start-match").addEventListener("click", startMatch);
+    $("#create-online").addEventListener("click", createOnlineMatch);
+    $("#join-online").addEventListener("click", joinOnlineMatch);
+    $("#join-room-code").addEventListener("keydown", (event) => {
+      if (event.key === "Enter") joinOnlineMatch();
+    });
+    $("#start-online").addEventListener("click", startOnlineMatch);
+    $("#copy-room-code").addEventListener("click", copyRoomCode);
+    $("#room-list").addEventListener("click", (event) => {
+      const joinButton = event.target.closest("button[data-join-match]");
+      if (!joinButton) return;
+      $("#join-room-code").value = joinButton.dataset.joinMatch;
+      joinOnlineMatch();
+    });
     $("#disconnect").addEventListener("click", disconnect);
     loadLobby();
+    window.setInterval(loadLobby, 3000);
 
     async function preparePlayer(role, name, button) {
       setBusy(button, true, "Preparando…");
@@ -141,8 +155,78 @@
       }
     }
 
+    async function createOnlineMatch() {
+      const button = $("#create-online");
+      setBusy(button, true, "Criando sala…");
+      setLobbyMessage("Abrindo uma sala para outro jogador…");
+      try {
+        await callApi("/app-api/matches/online/create", {
+          method: "POST",
+          body: { targetScore: Number($("#target-score").value) }
+        });
+        await loadLobby();
+      } catch (error) {
+        setLobbyMessage(error.message);
+        await loadLobby();
+      } finally {
+        setBusy(button, false);
+        await loadLobby();
+      }
+    }
+
+    async function joinOnlineMatch() {
+      const code = $("#join-room-code").value.trim();
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(code)) {
+        setLobbyMessage("Cole o código completo da sala.");
+        return;
+      }
+
+      const button = $("#join-online");
+      setBusy(button, true, "Entrando…");
+      setLobbyMessage("Entrando na sala pela API…");
+      try {
+        await callApi("/app-api/matches/online/join", {
+          method: "POST",
+          body: { matchId: code }
+        });
+        window.location.href = "/partida.html";
+      } catch (error) {
+        setLobbyMessage(error.message);
+        await loadLobby();
+      } finally {
+        setBusy(button, false);
+        await loadLobby();
+      }
+    }
+
+    async function startOnlineMatch() {
+      const button = $("#start-online");
+      setBusy(button, true, "Iniciando…");
+      setLobbyMessage("Iniciando a partida pela API…");
+      try {
+        await callApi("/app-api/matches/online/start", { method: "POST", body: {} });
+        window.location.href = "/partida.html";
+      } catch (error) {
+        setLobbyMessage(error.message);
+        await loadLobby();
+      } finally {
+        setBusy(button, false);
+        await loadLobby();
+      }
+    }
+
+    async function copyRoomCode() {
+      const code = $("#online-room-code").textContent.trim();
+      try {
+        await navigator.clipboard.writeText(code);
+        $("#copy-room-code").textContent = "Código copiado";
+      } catch {
+        window.prompt("Copie o código da sala:", code);
+      }
+    }
+
     async function disconnect() {
-      if (!window.confirm("Desconectar também libera seus dois perfis na API?")) return;
+      if (!window.confirm("Desconectar também libera seus perfis ativos na API?")) return;
       const button = $("#disconnect");
       setBusy(button, true, "Liberando…");
       try {
@@ -152,6 +236,7 @@
         setLobbyMessage(error.message);
       } finally {
         setBusy(button, false);
+        await loadLobby();
       }
     }
 
@@ -169,6 +254,7 @@
       const humanReady = Boolean(lobby.humanPlayer?.ready);
       const botReady = Boolean(lobby.botPlayer?.ready);
       const hasMatch = Boolean(lobby.activeMatchId);
+      const onlineMatch = lobby.matchMode === "Online" && hasMatch;
       $("#profile-name").textContent = lobby.humanPlayer?.name || "Você";
       $("#profile-status").textContent = connected ? "Conta FIAP conectada" : "Conta não conectada";
       $("#disclaimer").textContent = connected
@@ -186,7 +272,19 @@
       $("#prepare-bot").hidden = !connected || botReady;
       $("#start-match").hidden = hasMatch;
       $("#start-match").disabled = !lobby.canStartMachineMatch || hasMatch;
+      $("#create-online").hidden = hasMatch;
+      $("#create-online").disabled = !connected || !humanReady || hasMatch;
+      $("#join-room-code").disabled = !connected || !humanReady || hasMatch;
+      $("#join-online").disabled = !connected || !humanReady || hasMatch;
+      $("#online-room").hidden = !onlineMatch;
+      $("#online-room-code").textContent = lobby.activeMatchId || "";
+      $("#online-room-status").textContent = lobby.opponentName
+        ? `${lobby.opponentName} entrou na sala. ${lobby.matchParticipants}/2 jogadores conectados.`
+        : "Sala criada. Compartilhe este código e aguarde o outro jogador entrar.";
+      $("#start-online").hidden = !lobby.canStartOnlineMatch;
+      $("#start-online").disabled = !lobby.canStartOnlineMatch;
       $("#resume-match").hidden = !hasMatch;
+      $("#resume-match").textContent = onlineMatch ? "Abrir partida online ›" : "Continuar partida ›";
       $("#target-score").disabled = hasMatch;
       if (hasMatch) $("#target-score").value = String(lobby.targetScore);
       $("#disconnect").hidden = !connected;
@@ -200,13 +298,30 @@
       row.querySelector(".room-target").textContent = `Contra Muggins · ${lobby.targetScore} pts`;
       roomList.append(row);
 
-      if (hasMatch) {
+      for (const match of lobby.waitingMatches || []) {
+        const waitingRow = document.createElement("div");
+        waitingRow.className = "room-row";
+        waitingRow.innerHTML = '<svg class="people-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><circle cx="17" cy="9" r="2.5"/><path d="M2.7 18.6c.3-3.2 2.4-5.1 6.3-5.1s6 1.9 6.3 5.1v1H2.7zm12.1-4.4c3.8-.6 6.3 1.1 6.5 4.3h-4.7c-.1-1.7-.7-3.2-1.8-4.3"/></svg><span>1/2</span><span class="room-separator"></span><span class="room-target"></span><button class="small-action" type="button">Entrar</button>';
+        waitingRow.querySelector(".room-target").textContent = `Online · ${match.pontuacaoAlvo} pts · ${match.partidaId.slice(0, 8)}`;
+        const joinButton = waitingRow.querySelector("button");
+        joinButton.dataset.joinMatch = match.partidaId;
+        joinButton.disabled = !connected || !humanReady || hasMatch;
+        joinButton.setAttribute("aria-label", `Entrar na sala ${match.partidaId}`);
+        roomList.append(waitingRow);
+      }
+
+      if (hasMatch && onlineMatch && lobby.isMatchHost && !lobby.canStartOnlineMatch) {
+        setLobbyMessage("Compartilhe o código da sala. O início será liberado quando o outro jogador entrar.");
+      } else if (hasMatch && onlineMatch && lobby.canStartOnlineMatch) {
+        setLobbyMessage("Os dois jogadores estão na sala. Inicie a partida quando estiverem prontos.");
+      } else if (hasMatch) {
         setLobbyMessage("Há uma partida em andamento nesta sessão. Continue de onde parou.");
       } else if (!connected) {
         setLobbyMessage("Conecte sua conta FIAP para preparar os perfis e abrir uma partida.");
-      } else if (!lobby.canStartMachineMatch) {
-        const missing = [!humanReady ? "seu perfil" : null, !botReady ? "perfil do Muggins" : null].filter(Boolean).join(" e ");
-        setLobbyMessage(`Prepare ${missing} para começar. ${lobby.waitingMatches.length} partida(s) aguardando na API.`);
+      } else if (!humanReady) {
+        setLobbyMessage(`Prepare seu perfil para jogar. ${lobby.waitingMatches.length} sala(s) aguardando outro jogador.`);
+      } else if (!botReady) {
+        setLobbyMessage(`Seu perfil está pronto para jogar online. Prepare o perfil Muggins para enfrentar o computador.`);
       } else {
         setLobbyMessage(`Perfis prontos. ${lobby.waitingMatches.length} partida(s) de outros jogadores aguardando na API.`);
       }
@@ -654,13 +769,13 @@
           const secondValue = reverse ? piece.leftValue : piece.rightValue;
           const isVerticalDouble = isDoubleTile(piece) && !horizontalDoubleIndices.has(index);
           const tile = createDomino(firstValue, secondValue, isVerticalDouble);
-          const owner = piece.isBotTile ? "Muggins" : "Você";
+          const owner = piece.isBotTile ? (state.botName || "Adversário") : "Você";
           tile.setAttribute("aria-label", `${firstValue} e ${secondValue}, jogada por ${owner}`);
           tile.title = `Jogada de ${owner}`;
           tile.classList.add("board-tile");
           const badge = document.createElement("span");
           badge.className = `board-owner ${piece.isBotTile ? "bot" : "human"}`;
-          badge.textContent = piece.isBotTile ? "M" : "EU";
+          badge.textContent = piece.isBotTile ? "OP" : "EU";
           badge.setAttribute("aria-hidden", "true");
           tile.append(badge);
           row.append(tile);
@@ -674,7 +789,7 @@
         const piece = boardTiles[turn.index];
         // PlacedTile values follow chain order: A connects from the row above, and B continues below.
         const tile = createDomino(piece.leftValue, piece.rightValue, true);
-        const owner = piece.isBotTile ? "Muggins" : "Você";
+        const owner = piece.isBotTile ? (state.botName || "Adversário") : "Você";
         tile.setAttribute("aria-label", `${piece.leftValue} e ${piece.rightValue}, jogada por ${owner}; peça de virada`);
         tile.title = `Jogada de ${owner} · virada da sequência`;
         tile.classList.add("board-tile", "turn-connector");
@@ -683,7 +798,7 @@
         tile.style.zIndex = String(turnIndex * 2 + 2);
         const badge = document.createElement("span");
         badge.className = `board-owner ${piece.isBotTile ? "bot" : "human"}`;
-        badge.textContent = piece.isBotTile ? "M" : "EU";
+        badge.textContent = piece.isBotTile ? "ADV" : "EU";
         badge.setAttribute("aria-hidden", "true");
         tile.append(badge);
         board.append(tile);
