@@ -45,6 +45,8 @@ public sealed record MatchView(
     string? WinnerName,
     int? LeftEnd,
     int? RightEnd,
+    int? OpeningTileIndex,
+    int EndsTotal,
     IReadOnlyList<BoardTileView> Board,
     IReadOnlyList<PecaPartidaDto> Hand,
     PecaPartidaDto? RequiredOpeningTile);
