@@ -8,47 +8,45 @@
   <link rel="stylesheet" href="/site.css">
 </head>
 <body data-page="home">
-  <main class="app-frame">
-    <header class="site-header">
-      <a class="brand" href="/" aria-label="Muggins, início"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="5" stroke="currentColor" stroke-width="1.7"/><circle cx="8" cy="8" r="1.7" fill="currentColor"/><circle cx="16" cy="8" r="1.7" fill="currentColor"/><circle cx="8" cy="16" r="1.7" fill="currentColor"/><circle cx="16" cy="16" r="1.7" fill="currentColor"/></svg></span><span>MUGGINS</span></a>
-      <nav class="site-nav" aria-label="Navegação principal">
-        <a href="/" aria-current="page">Início</a><a href="/como-jogar.html">Como jogar</a><a href="/offline.html">Contra Muggins</a><a href="/online.html">Lobby online</a>
+  <main class="home-landing">
+    <section class="home-artboard" aria-label="Página inicial do Muggins">
+      <img class="home-reference-image" src="/images/muggins-home-reference.png" alt="Muggins: domine as quinas, some pontos e vença a partida. Escolha jogar agora, jogar online ou aprender a jogar.">
+      <nav class="home-hotspots" aria-label="Ações da página inicial">
+        <a class="home-hotspot hotspot-brand" href="/" aria-label="Muggins, início"></a>
+        <a class="home-hotspot hotspot-start" href="/" aria-label="Início"></a>
+        <a class="home-hotspot hotspot-rules" href="/como-jogar.html" aria-label="Como jogar"></a>
+        <a class="home-hotspot hotspot-about" href="/como-jogar.html#sobre" aria-label="Sobre o Muggins"></a>
+        <a class="home-hotspot hotspot-play" href="/offline.html" aria-label="Jogar agora contra Muggins"></a>
+        <a class="home-hotspot hotspot-online" href="/online.html" aria-label="Jogar online"></a>
+        <a class="home-hotspot hotspot-scoring" href="/como-jogar.html#pontuacao" aria-label="Como funciona a pontuação"></a>
+        <a class="home-hotspot hotspot-card-offline" href="/offline.html" aria-label="Contra Muggins"></a>
+        <a class="home-hotspot hotspot-card-online" href="/online.html" aria-label="Partida online"></a>
+        <a class="home-hotspot hotspot-card-rules" href="/como-jogar.html" aria-label="Aprenda a jogar"></a>
       </nav>
-      <div class="header-right"><span class="connection-pill"><span class="connection-dot" aria-hidden="true"></span>Pronto para jogar</span><a class="header-button" href="/offline.html">Entrar</a></div>
-    </header>
+    </section>
 
-    <div class="page-wrap">
-      <section class="hero-home" aria-labelledby="hero-title">
-        <div class="hero-copy">
-          <span class="eyebrow">Dominó · Ponta de quina</span>
-          <h1 id="hero-title">Muggins</h1>
-          <p>Domine as quinas. Some pontos. Vença a partida.</p>
-          <div class="hero-actions"><a class="button primary" href="/offline.html">Jogar contra Muggins <span aria-hidden="true">›</span></a><a class="button secondary" href="/online.html">Jogar online <span aria-hidden="true">›</span></a></div>
-          <a class="text-link" href="/como-jogar.html#pontuacao">Como funciona a pontuação <span aria-hidden="true">›</span></a>
+    <section class="mobile-home" aria-label="Página inicial do Muggins">
+      <header class="mobile-home-header">
+        <a class="mobile-brand" href="/" aria-label="Muggins, início"><span class="mobile-brand-mark" aria-hidden="true">⚄</span><span>MUGGINS</span></a>
+        <span class="mobile-connected"><i aria-hidden="true"></i>Conectado</span>
+      </header>
+      <div class="mobile-home-content">
+        <p class="mobile-eyebrow">Dominó · Ponta de quina</p>
+        <h1>Muggins</h1>
+        <p class="mobile-tagline">Domine as quinas. Some pontos. Vença a partida.</p>
+        <div class="mobile-actions">
+          <a class="mobile-button mobile-button-primary" href="/offline.html">Jogar agora <span aria-hidden="true">›</span></a>
+          <a class="mobile-button mobile-button-outline" href="/online.html">Jogar online <span aria-hidden="true">›</span></a>
         </div>
-        <div class="hero-art" aria-hidden="true">
-          <div class="back-deck"><span class="back-tile"></span><span class="back-tile"></span><span class="back-tile"></span></div>
-          <div class="preview-chain">
-            <div class="preview-tile horizontal"><span class="preview-half" data-v="3"></span><span class="preview-half" data-v="6"></span></div>
-            <div class="preview-tile horizontal"><span class="preview-half" data-v="6"></span><span class="preview-half" data-v="1"></span></div>
-            <div class="preview-tile horizontal"><span class="preview-half" data-v="1"></span><span class="preview-half" data-v="5"></span></div>
-            <div class="preview-tile vertical"><span class="preview-half" data-v="5"></span><span class="preview-half" data-v="5"></span></div>
-            <div class="preview-tile horizontal"><span class="preview-half" data-v="5"></span><span class="preview-half" data-v="2"></span></div>
-            <div class="preview-tile horizontal"><span class="preview-half" data-v="2"></span><span class="preview-half" data-v="4"></span></div>
-            <div class="preview-tile horizontal"><span class="preview-half" data-v="4"></span><span class="preview-half" data-v="1"></span></div>
-          </div>
-          <span class="art-decoration"></span>
-        </div>
-      </section>
-
-      <nav class="home-links" aria-label="Escolha uma área">
-        <a class="home-link-card" href="/offline.html"><svg viewBox="0 0 48 48" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="24" cy="14" r="8"/><path d="M7 40c1-9 7-14 17-14s16 5 17 14H7z"/></svg><span>Contra Muggins</span></a>
-        <a class="home-link-card" href="/online.html"><svg viewBox="0 0 48 48" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="15" r="6"/><circle cx="33" cy="17" r="5"/><path d="M5 38c.7-7 5-11 13-11s12 4 13 11H5zM29 29c8-2 13 2 14 9H32"/><circle cx="9" cy="22" r="4"/><path d="M2 36c.5-5 3-8 8-9"/></svg><span>Partida online</span></a>
-        <a class="home-link-card" href="/como-jogar.html"><svg viewBox="0 0 48 48" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M24 12c-5-4-11-4-18-2v27c7-2 13-2 18 2 5-4 11-4 18-2V10c-7-2-13-2-18 2z"/><path d="M24 12v27"/></svg><span>Aprenda a jogar</span></a>
-      </nav>
-    </div>
-
-    <footer class="site-footer"><a class="footer-brand" href="/">MUGGINS</a><span>Dominó Ponta de Quina</span><nav class="footer-links" aria-label="Links do rodapé"><a href="/como-jogar.html">Regras</a><a href="/online.html">Jogar com alguém</a></nav></footer>
+        <a class="mobile-scoring" href="/como-jogar.html#pontuacao">Como funciona a pontuação <span aria-hidden="true">›</span></a>
+        <nav class="mobile-home-cards" aria-label="Escolha como jogar">
+          <a href="/offline.html"><span class="mobile-card-icon" aria-hidden="true">♙</span><span>Contra Muggins</span><span class="mobile-card-arrow" aria-hidden="true">›</span></a>
+          <a href="/online.html"><span class="mobile-card-icon" aria-hidden="true">♧</span><span>Partida online</span><span class="mobile-card-arrow" aria-hidden="true">›</span></a>
+          <a href="/como-jogar.html"><span class="mobile-card-icon" aria-hidden="true">▤</span><span>Aprenda a jogar</span><span class="mobile-card-arrow" aria-hidden="true">›</span></a>
+        </nav>
+      </div>
+      <footer class="mobile-home-footer"><a href="/como-jogar.html">Como jogar</a><a href="/online.html">Jogar com alguém</a></footer>
+    </section>
   </main>
 </body>
 </html>

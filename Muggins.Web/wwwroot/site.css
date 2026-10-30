@@ -225,3 +225,52 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
   .preview-chain { transform: rotate(-10deg) scale(.66); }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; } }
+
+/* The desktop landing artwork is the approved reference image. These transparent
+   links sit over its controls so the visual stays exact while every option works. */
+body[data-page="home"] { min-height: 100svh; padding: 0; overflow-x: hidden; background: #061326; }
+body[data-page="home"] .home-landing { min-height: 100svh; display: flex; justify-content: center; background: radial-gradient(ellipse at 52% 5%, #0b2a4a 0, #061326 68%); }
+body[data-page="home"] .home-artboard { position: relative; width: min(100%, 1586px, 160svh); height: auto; align-self: flex-start; aspect-ratio: 1586 / 992; }
+body[data-page="home"] .home-reference-image { display: block; width: 100%; height: 100%; object-fit: fill; }
+body[data-page="home"] .home-hotspots { position: absolute; inset: 0; }
+body[data-page="home"] .home-hotspot { position: absolute; display: block; border-radius: 7px; }
+body[data-page="home"] .home-hotspot:focus-visible { outline: 3px solid #8cdbff; outline-offset: 2px; background: #168cff20; }
+body[data-page="home"] .hotspot-brand { left: 3.7%; top: 1.5%; width: 17%; height: 5.5%; }
+body[data-page="home"] .hotspot-start { left: 65.4%; top: 1.5%; width: 4.5%; height: 5.5%; }
+body[data-page="home"] .hotspot-rules { left: 71.7%; top: 1.5%; width: 7.2%; height: 5.5%; }
+body[data-page="home"] .hotspot-about { left: 80.9%; top: 1.5%; width: 5.5%; height: 5.5%; }
+body[data-page="home"] .hotspot-play { left: 4.7%; top: 46%; width: 17.8%; height: 8.4%; }
+body[data-page="home"] .hotspot-online { left: 23.8%; top: 46%; width: 17.4%; height: 8.4%; }
+body[data-page="home"] .hotspot-scoring { left: 4.6%; top: 57.8%; width: 19%; height: 4.2%; }
+body[data-page="home"] .hotspot-card-offline { left: 3.6%; top: 74.9%; width: 29.8%; height: 18.6%; }
+body[data-page="home"] .hotspot-card-online { left: 35%; top: 74.9%; width: 29.8%; height: 18.6%; }
+body[data-page="home"] .hotspot-card-rules { left: 66.6%; top: 74.9%; width: 29.8%; height: 18.6%; }
+body[data-page="home"] .mobile-home { display: none; }
+
+@media (max-width: 760px) {
+  body[data-page="home"] { background: #061326; }
+  body[data-page="home"] .home-landing { display: block; padding: 0 20px; background: radial-gradient(ellipse at 66% 0, #103d68 0, #07172d 42rem, #040c18 100%); }
+  body[data-page="home"] .home-artboard { display: none; }
+  body[data-page="home"] .mobile-home { width: min(100%, 560px); min-height: 100svh; display: flex; flex-direction: column; margin: 0 auto; }
+  body[data-page="home"] .mobile-home-header { min-height: 69px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #3472a655; }
+  body[data-page="home"] .mobile-brand { display: inline-flex; align-items: center; gap: 10px; color: #fff; font: 700 19px Georgia, "Times New Roman", serif; letter-spacing: .15em; text-decoration: none; }
+  body[data-page="home"] .mobile-brand-mark { width: 34px; height: 34px; display: grid; place-items: center; border: 2px solid #279aff; border-radius: 9px; font: 22px Georgia, serif; letter-spacing: 0; }
+  body[data-page="home"] .mobile-connected { display: inline-flex; align-items: center; gap: 8px; color: #72ccff; font-size: 12px; }
+  body[data-page="home"] .mobile-connected i { width: 9px; height: 9px; border-radius: 50%; background: #00dfb4; box-shadow: 0 0 12px #00dfb4; }
+  body[data-page="home"] .mobile-home-content { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 54px 0 40px; }
+  body[data-page="home"] .mobile-eyebrow { margin: 0 0 12px; color: #72ccff; font-size: 10px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
+  body[data-page="home"] .mobile-home h1 { margin: 0; color: #fff; font: 500 clamp(76px, 19vw, 108px)/.92 Georgia, "Times New Roman", serif; letter-spacing: -.065em; }
+  body[data-page="home"] .mobile-tagline { max-width: 520px; margin: 20px 0 0; color: #e5edf7; font: clamp(20px, 5vw, 25px)/1.4 Georgia, "Times New Roman", serif; }
+  body[data-page="home"] .mobile-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 27px; }
+  body[data-page="home"] .mobile-button { min-height: 52px; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 10px; border: 1px solid #369aff; border-radius: 10px; color: white; font: 18px Georgia, "Times New Roman", serif; text-decoration: none; }
+  body[data-page="home"] .mobile-button span { color: #72ccff; font: 28px/1 Arial, sans-serif; }
+  body[data-page="home"] .mobile-button-primary { background: linear-gradient(115deg, #0784ff, #075fce); box-shadow: 0 8px 23px #087de744; }
+  body[data-page="home"] .mobile-button-outline { background: #06182dd9; }
+  body[data-page="home"] .mobile-scoring { align-self: flex-start; margin-top: 19px; color: #72ccff; font: 16px Georgia, "Times New Roman", serif; text-underline-offset: 5px; }
+  body[data-page="home"] .mobile-home-cards { display: grid; gap: 10px; margin-top: 48px; }
+  body[data-page="home"] .mobile-home-cards a { min-height: 70px; display: grid; grid-template-columns: 42px 1fr 20px; align-items: center; gap: 10px; padding: 12px 16px; border: 1px solid #3178b2; border-radius: 11px; color: #f7f9fd; background: #07182bd9; font: 19px Georgia, "Times New Roman", serif; text-decoration: none; }
+  body[data-page="home"] .mobile-card-icon { color: #3ba7ff; font: 29px Georgia, serif; text-align: center; }
+  body[data-page="home"] .mobile-card-arrow { color: #71caff; font: 26px Arial, sans-serif; }
+  body[data-page="home"] .mobile-home-footer { display: flex; justify-content: space-between; gap: 20px; padding: 17px 0 22px; border-top: 1px solid #3472a655; }
+  body[data-page="home"] .mobile-home-footer a { color: #9cb9d4; font-size: 12px; text-decoration: none; }
+}
