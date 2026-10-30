@@ -876,6 +876,15 @@
   }
 
   function createDomino(valueA, valueB, isVertical, button = false) {
+    const pipPositions = [
+      [],
+      [[2, 2]],
+      [[1, 1], [3, 3]],
+      [[1, 1], [2, 2], [3, 3]],
+      [[1, 1], [1, 3], [3, 1], [3, 3]],
+      [[1, 1], [1, 3], [2, 2], [3, 1], [3, 3]],
+      [[1, 1], [1, 2], [2, 1], [2, 2], [3, 1], [3, 2]]
+    ];
     const element = document.createElement(button ? "button" : "div");
     element.className = `domino ${isVertical ? "vertical" : "horizontal"}${button ? " hand-tile" : ""}`;
     if (button) element.type = "button";
@@ -884,6 +893,15 @@
       const half = document.createElement("span");
       half.className = "half";
       half.dataset.v = String(value);
+      if (value === 6) half.classList.add("six-pips");
+      for (const [row, column] of pipPositions[value] || []) {
+        const pip = document.createElement("span");
+        pip.className = "pip";
+        pip.style.gridRow = String(row);
+        pip.style.gridColumn = String(column);
+        pip.setAttribute("aria-hidden", "true");
+        half.append(pip);
+      }
       element.append(half);
     }
     return element;
