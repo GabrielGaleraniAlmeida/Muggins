@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#071426">
+  <title>Contra Muggins — Muggins</title>
+  <link rel="stylesheet" href="/site.css">
+</head>
+<body data-page="offline">
+  <main class="app-frame">
+    <header class="site-header">
+      <a class="brand" href="/" aria-label="Muggins, início"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="5" stroke="currentColor" stroke-width="1.7"/><circle cx="8" cy="8" r="1.7" fill="currentColor"/><circle cx="16" cy="8" r="1.7" fill="currentColor"/><circle cx="8" cy="16" r="1.7" fill="currentColor"/><circle cx="16" cy="16" r="1.7" fill="currentColor"/></svg></span><span>MUGGINS</span></a>
+      <nav class="site-nav" aria-label="Navegação principal">
+        <a href="/">Início</a><a href="/como-jogar.html">Como jogar</a><a href="/offline.html" aria-current="page">Contra Muggins</a><a href="/online.html">Lobby online</a>
+      </nav>
+      <div class="header-right"><span class="connection-pill" id="header-connection"><span class="connection-dot" aria-hidden="true"></span><span id="header-connection-label">Verificando perfil…</span></span><button class="header-button" id="connect-open" type="button">Conectar</button></div>
+    </header>
+
+    <div class="page-wrap">
+      <section class="page-intro">
+        <span class="eyebrow">Jogo solo</span>
+        <h1 class="page-title">Enfrente Muggins</h1>
+        <p>Prepare seus perfis, escolha a pontuação-alvo e jogue uma partida contra a máquina.</p>
+      </section>
+
+      <section class="game-layout" aria-label="Configuração da partida contra Muggins">
+        <section class="form-card" aria-labelledby="player-title">
+          <div class="profile-summary"><div class="avatar" aria-hidden="true">EU</div><div><h2 class="profile-name" id="profile-name">Você</h2><p class="profile-status" id="profile-status">Conta não conectada</p></div></div>
+          <div class="profile-divider"></div>
+          <p class="details-title" id="player-title">Perfis da partida</p>
+          <span class="profile-detail" id="human-profile">Seu perfil ainda não está preparado</span>
+          <span class="profile-detail" id="bot-profile">Perfil Muggins ainda não está preparado</span>
+          <div class="stack">
+            <button class="button secondary full" id="prepare-human" type="button" hidden>Preparar meu perfil</button>
+            <button class="button secondary full" id="prepare-bot" type="button" hidden>Preparar perfil Muggins</button>
+            <label class="field-label">Pontuação-alvo
+              <select id="target-score"><option value="50">50 pontos</option><option value="100" selected>100 pontos</option><option value="150">150 pontos</option></select>
+            </label>
+            <button class="button primary full" id="start-match" type="button" disabled>Começar partida</button>
+            <a class="button primary full" id="resume-match" href="/partida.html" hidden>Continuar partida</a>
+            <button class="button quiet full" id="disconnect" type="button" hidden>Desconectar e liberar perfis</button>
+          </div>
+          <p class="status-message" id="lobby-status" role="status" aria-live="polite">Conecte sua conta FIAP para preparar seus perfis.</p>
+        </section>
+
+        <aside class="form-card">
+          <h2>Como vai funcionar</h2>
+          <p>O jogo abre uma mesa com as regras da API. Durante a partida, o tabuleiro, a pontuação e as ações permitidas são sincronizados com o servidor.</p>
+          <div class="rule-card compact">
+            <span class="rule-step">✓</span><h3>Partida contra a máquina</h3><p>Muggins joga automaticamente no próprio turno. Você escolhe as pedras e o lado do tabuleiro quando a partida indicar que é sua vez.</p>
+          </div>
+          <div class="rules-actions"><a class="button secondary" href="/como-jogar.html">Rever as regras</a><a class="button quiet" href="/online.html">Jogar com alguém</a></div>
+        </aside>
+      </section>
+    </div>
+
+    <footer class="site-footer"><a class="footer-brand" href="/">MUGGINS</a><span id="disclaimer">Partida individual · API conectada</span><nav class="footer-links" aria-label="Links do rodapé"><a href="/como-jogar.html">Regras</a><a href="/online.html">Lobby online</a></nav></footer>
+  </main>
+
+  <div class="auth-overlay" id="auth-overlay" hidden>
+    <section class="auth-card" role="dialog" aria-modal="true" aria-labelledby="auth-title">
+      <button class="auth-close" id="auth-close" type="button" aria-label="Fechar">×</button>
+      <h2 id="auth-title">Conectar sua conta</h2>
+      <p>Use seu e-mail FIAP para solicitar um token. O token e as chaves dos perfis ficam guardados de forma protegida neste computador.</p>
+      <form class="auth-form" id="email-form"><label for="login-email">E-mail FIAP</label><input id="login-email" name="email" type="email" autocomplete="email" required placeholder="nome@fiap.com.br"><button class="button primary full" type="submit">Solicitar token por e-mail</button></form>
+      <form class="auth-form" id="token-form" hidden><label for="access-token">Token recebido por e-mail</label><input id="access-token" name="token" type="password" autocomplete="one-time-code" required><button class="button primary full" type="submit">Conectar</button></form>
+      <p class="auth-message" id="auth-message" role="status" aria-live="polite"></p>
+    </section>
+  </div>
+  <script src="/app.js" defer></script>
+</body>
+</html>

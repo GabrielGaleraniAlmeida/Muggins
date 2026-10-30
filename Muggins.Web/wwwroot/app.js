@@ -42,7 +42,7 @@
     }
   }
 
-  if (page === "lobby") initializeLobby();
+  if (page === "offline" || page === "online") initializeLobby();
   if (page === "match") initializeMatch();
 
   function initializeLobby() {
@@ -105,92 +105,25 @@
       }
     });
 
-    $("#prepare-human").addEventListener("click", () => preparePlayer("human", "Você", $("#prepare-human")));
-    $("#prepare-bot").addEventListener("click", () => preparePlayer("bot", "Muggins", $("#prepare-bot")));
-    $("#start-match").addEventListener("click", startMatch);
-    $("#hero-play").addEventListener("click", () => startMachineFromHome($("#hero-play")));
-    $("#feature-machine").addEventListener("click", () => startMachineFromHome($("#feature-machine")));
-    $("#hero-online").addEventListener("click", showOnlineOptions);
-    $("#feature-online").addEventListener("click", showOnlineOptions);
-    $("#create-online").addEventListener("click", createOnlineMatch);
-    $("#join-online").addEventListener("click", joinOnlineMatch);
-    $("#join-room-code").addEventListener("keydown", (event) => {
+    $("#prepare-human")?.addEventListener("click", () => preparePlayer("human", "Você", $("#prepare-human")));
+    $("#prepare-bot")?.addEventListener("click", () => preparePlayer("bot", "Muggins", $("#prepare-bot")));
+    $("#start-match")?.addEventListener("click", startMatch);
+    $("#create-online")?.addEventListener("click", createOnlineMatch);
+    $("#join-online")?.addEventListener("click", joinOnlineMatch);
+    $("#join-room-code")?.addEventListener("keydown", (event) => {
       if (event.key === "Enter") joinOnlineMatch();
     });
-    $("#start-online").addEventListener("click", startOnlineMatch);
-    $("#copy-room-code").addEventListener("click", copyRoomCode);
-    $("#room-list").addEventListener("click", (event) => {
+    $("#start-online")?.addEventListener("click", startOnlineMatch);
+    $("#copy-room-code")?.addEventListener("click", copyRoomCode);
+    $("#room-list")?.addEventListener("click", (event) => {
       const joinButton = event.target.closest("button[data-join-match]");
       if (!joinButton) return;
       $("#join-room-code").value = joinButton.dataset.joinMatch;
       joinOnlineMatch();
     });
-    $("#disconnect").addEventListener("click", disconnect);
+    $("#disconnect")?.addEventListener("click", disconnect);
     loadLobby();
     window.setInterval(loadLobby, 3000);
-
-    async function startMachineFromHome(button) {
-      if (!latestLobby) {
-        scrollToSetup("#lobby-status");
-        setLobbyMessage("Carregando seu perfil…");
-        return;
-      }
-
-      if (!latestLobby.connected) {
-        setLobbyMessage("Conecte sua conta FIAP para começar a jogar.");
-        $("#connect-open").click();
-        return;
-      }
-
-      if (latestLobby.activeMatchId) {
-        window.location.href = "/partida.html";
-        return;
-      }
-
-      if (!latestLobby.humanPlayer?.ready) {
-        scrollToSetup("#prepare-human");
-        setLobbyMessage("Prepare seu perfil para iniciar a partida.");
-        return;
-      }
-
-      if (!latestLobby.botPlayer?.ready) {
-        scrollToSetup("#prepare-bot");
-        setLobbyMessage("Prepare o perfil Muggins para jogar contra a máquina.");
-        return;
-      }
-
-      setBusy(button, true, "Iniciando…");
-      try {
-        await startMatch();
-      } finally {
-        setBusy(button, false);
-      }
-    }
-
-    function showOnlineOptions() {
-      const focusTarget = !latestLobby?.connected
-        ? null
-        : latestLobby.activeMatchId
-          ? "#resume-match"
-          : latestLobby.humanPlayer?.ready
-            ? "#join-room-code"
-            : "#prepare-human";
-      scrollToSetup(focusTarget);
-      if (!latestLobby?.connected) {
-        setLobbyMessage("Conecte sua conta FIAP para criar ou entrar em uma sala.");
-        $("#connect-open").click();
-      } else if (latestLobby.activeMatchId) {
-        setLobbyMessage("Você já tem uma partida ativa. Use o botão para continuar ou compartilhe o código da sala.");
-      } else if (!latestLobby.humanPlayer?.ready) {
-        setLobbyMessage("Prepare seu perfil antes de entrar em uma partida online.");
-        window.setTimeout(() => $("#prepare-human").focus(), 350);
-      }
-    }
-
-    function scrollToSetup(focusSelector) {
-      $("#setup-panel").scrollIntoView({ behavior: "smooth", block: "start" });
-      if (focusSelector) window.setTimeout(() => $(focusSelector)?.focus(), 350);
-    }
 
     async function preparePlayer(role, name, button) {
       setBusy(button, true, "Preparando…");
@@ -324,62 +257,61 @@
       const botReady = Boolean(lobby.botPlayer?.ready);
       const hasMatch = Boolean(lobby.activeMatchId);
       const onlineMatch = lobby.matchMode === "Online" && hasMatch;
-      $("#profile-name").textContent = lobby.humanPlayer?.name || "Você";
-      $("#profile-status").textContent = connected ? "Conta FIAP conectada" : "Conta não conectada";
-      $("#header-connection-label").textContent = connected ? "Conectado" : "Conta desconectada";
-      $("#header-connection").classList.toggle("disconnected", !connected);
-      $("#disclaimer").textContent = connected
-        ? "Motor Muggins conectado à API"
-        : "Prévia visual da mesa · conecte-se para jogar";
-      $("#human-profile").textContent = lobby.humanPlayer
-        ? `Você: ${lobby.humanPlayer.name}${humanReady ? " · pronto" : " · perfil sem chave local"}`
-        : "Você: não preparado";
-      $("#bot-profile").textContent = lobby.botPlayer
-        ? `Muggins: ${lobby.botPlayer.name}${botReady ? " · pronto" : " · perfil sem chave local"}`
-        : "Muggins: não preparado";
+      const waitingMatches = lobby.waitingMatches || [];
 
-      $("#connect-open").hidden = connected;
-      $("#prepare-human").hidden = !connected || humanReady;
-      $("#prepare-bot").hidden = !connected || botReady;
-      $("#start-match").hidden = hasMatch;
-      $("#start-match").disabled = !lobby.canStartMachineMatch || hasMatch;
-      $("#create-online").hidden = hasMatch;
-      $("#create-online").disabled = !connected || !humanReady || hasMatch;
-      $("#join-room-code").disabled = !connected || !humanReady || hasMatch;
-      $("#join-online").disabled = !connected || !humanReady || hasMatch;
-      $("#online-room").hidden = !onlineMatch;
-      $("#online-room-code").textContent = lobby.activeMatchId || "";
-      $("#online-room-status").textContent = lobby.opponentName
+      setText("#profile-name", lobby.humanPlayer?.name || "Você");
+      setText("#profile-status", connected ? "Conta FIAP conectada" : "Conta não conectada");
+      setText("#header-connection-label", connected ? "Conectado" : "Conta desconectada");
+      $("#header-connection")?.classList.toggle("connected", connected);
+      setText("#disclaimer", connected
+        ? "Motor Muggins conectado à API"
+        : "Conecte-se para começar a jogar");
+      setText("#human-profile", lobby.humanPlayer
+        ? `Você: ${lobby.humanPlayer.name}${humanReady ? " · pronto" : " · perfil sem chave local"}`
+        : "Você: não preparado");
+      setText("#bot-profile", lobby.botPlayer
+        ? `Muggins: ${lobby.botPlayer.name}${botReady ? " · pronto" : " · perfil sem chave local"}`
+        : "Muggins: não preparado");
+
+      setHidden("#connect-open", connected);
+      setHidden("#prepare-human", !connected || humanReady);
+      setHidden("#prepare-bot", !connected || botReady);
+      setHidden("#start-match", hasMatch);
+      setDisabled("#start-match", !lobby.canStartMachineMatch || hasMatch);
+      setHidden("#create-online", hasMatch);
+      setDisabled("#create-online", !connected || !humanReady || hasMatch);
+      setDisabled("#join-room-code", !connected || !humanReady || hasMatch);
+      setDisabled("#join-online", !connected || !humanReady || hasMatch);
+      setHidden("#online-room", !onlineMatch);
+      setText("#online-room-code", lobby.activeMatchId || "");
+      setText("#online-room-status", lobby.opponentName
         ? `${lobby.opponentName} entrou na sala. ${lobby.matchParticipants}/2 jogadores conectados.`
-        : "Sala criada. Compartilhe este código e aguarde o outro jogador entrar.";
-      $("#start-online").hidden = !lobby.canStartOnlineMatch;
-      $("#start-online").disabled = !lobby.canStartOnlineMatch;
-      $("#resume-match").hidden = !hasMatch;
-      $("#resume-match").textContent = onlineMatch ? "Abrir partida online ›" : "Continuar partida ›";
-      $("#target-score").disabled = hasMatch;
-      if (hasMatch) $("#target-score").value = String(lobby.targetScore);
-      $("#disconnect").hidden = !connected;
+        : "Sala criada. Compartilhe este código e aguarde o outro jogador entrar.");
+      setHidden("#start-online", !lobby.canStartOnlineMatch);
+      setDisabled("#start-online", !lobby.canStartOnlineMatch);
+      setHidden("#resume-match", !hasMatch);
+      setText("#resume-match", onlineMatch ? "Abrir partida online" : "Continuar partida");
+      setDisabled("#target-score", hasMatch);
+      const targetScore = $("#target-score");
+      if (hasMatch && targetScore) targetScore.value = String(lobby.targetScore);
+      setHidden("#disconnect", !connected);
 
       const roomList = $("#room-list");
-      roomList.replaceChildren();
-      const row = document.createElement("div");
-      row.className = "room-row selected";
-      row.setAttribute("aria-current", "true");
-      row.innerHTML = '<svg class="people-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><circle cx="17" cy="9" r="2.5"/><path d="M2.7 18.6c.3-3.2 2.4-5.1 6.3-5.1s6 1.9 6.3 5.1v1H2.7zm12.1-4.4c3.8-.6 6.3 1.1 6.5 4.3h-4.7c-.1-1.7-.7-3.2-1.8-4.3"/></svg><span>1/2</span><span class="room-separator"></span><span class="room-target"></span><span class="chevron">›</span>';
-      row.querySelector(".room-target").textContent = `Contra Muggins · ${lobby.targetScore} pts`;
-      roomList.append(row);
-
-      for (const match of lobby.waitingMatches || []) {
-        const waitingRow = document.createElement("div");
-        waitingRow.className = "room-row";
-        waitingRow.innerHTML = '<svg class="people-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><circle cx="17" cy="9" r="2.5"/><path d="M2.7 18.6c.3-3.2 2.4-5.1 6.3-5.1s6 1.9 6.3 5.1v1H2.7zm12.1-4.4c3.8-.6 6.3 1.1 6.5 4.3h-4.7c-.1-1.7-.7-3.2-1.8-4.3"/></svg><span>1/2</span><span class="room-separator"></span><span class="room-target"></span><button class="small-action" type="button">Entrar</button>';
-        waitingRow.querySelector(".room-target").textContent = `Online · ${match.pontuacaoAlvo} pts · ${match.partidaId.slice(0, 8)}`;
-        const joinButton = waitingRow.querySelector("button");
-        joinButton.dataset.joinMatch = match.partidaId;
-        joinButton.disabled = !connected || !humanReady || hasMatch;
-        joinButton.setAttribute("aria-label", `Entrar na sala ${match.partidaId}`);
-        roomList.append(waitingRow);
+      if (roomList) {
+        roomList.replaceChildren();
+        for (const match of waitingMatches) {
+          const waitingRow = document.createElement("div");
+          waitingRow.className = "room-row";
+          waitingRow.innerHTML = '<svg class="people-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="8" r="3.2"/><circle cx="17" cy="9" r="2.5"/><path d="M2.7 18.6c.3-3.2 2.4-5.1 6.3-5.1s6 1.9 6.3 5.1v1H2.7zm12.1-4.4c3.8-.6 6.3 1.1 6.5 4.3h-4.7c-.1-1.7-.7-3.2-1.8-4.3"/></svg><span>1/2</span><span class="room-separator"></span><span class="room-target"></span><button class="small-action" type="button">Entrar</button>';
+          waitingRow.querySelector(".room-target").textContent = `Online · ${match.pontuacaoAlvo} pts · ${match.partidaId.slice(0, 8)}`;
+          const joinButton = waitingRow.querySelector("button");
+          joinButton.dataset.joinMatch = match.partidaId;
+          joinButton.disabled = !connected || !humanReady || hasMatch;
+          joinButton.setAttribute("aria-label", `Entrar na sala ${match.partidaId}`);
+          roomList.append(waitingRow);
+        }
       }
+      setHidden("#rooms-empty", waitingMatches.length > 0);
 
       if (hasMatch && onlineMatch && lobby.isMatchHost && !lobby.canStartOnlineMatch) {
         setLobbyMessage("Compartilhe o código da sala. O início será liberado quando o outro jogador entrar.");
@@ -388,18 +320,34 @@
       } else if (hasMatch) {
         setLobbyMessage("Há uma partida em andamento nesta sessão. Continue de onde parou.");
       } else if (!connected) {
-        setLobbyMessage("Conecte sua conta FIAP para preparar os perfis e abrir uma partida.");
+        setLobbyMessage("Conecte sua conta FIAP para preparar seu perfil e abrir uma partida.");
       } else if (!humanReady) {
-        setLobbyMessage(`Prepare seu perfil para jogar. ${lobby.waitingMatches.length} sala(s) aguardando outro jogador.`);
-      } else if (!botReady) {
-        setLobbyMessage(`Seu perfil está pronto para jogar online. Prepare o perfil Muggins para enfrentar o computador.`);
+        setLobbyMessage(`Prepare seu perfil para jogar. ${waitingMatches.length} sala(s) aguardando outro jogador.`);
+      } else if (page === "offline" && !botReady) {
+        setLobbyMessage("Seu perfil está pronto. Prepare Muggins para iniciar uma partida contra a máquina.");
       } else {
-        setLobbyMessage(`Perfis prontos. ${lobby.waitingMatches.length} partida(s) de outros jogadores aguardando na API.`);
+        setLobbyMessage(`Perfil pronto. ${waitingMatches.length} sala(s) aguardando outro jogador.`);
       }
     }
 
     function setLobbyMessage(message) {
-      $("#lobby-status").textContent = message;
+      const element = $("#lobby-status");
+      if (element) element.textContent = message;
+    }
+
+    function setText(selector, value) {
+      const element = $(selector);
+      if (element) element.textContent = value;
+    }
+
+    function setHidden(selector, hidden) {
+      const element = $(selector);
+      if (element) element.hidden = hidden;
+    }
+
+    function setDisabled(selector, disabled) {
+      const element = $(selector);
+      if (element) element.disabled = disabled;
     }
   }
 
