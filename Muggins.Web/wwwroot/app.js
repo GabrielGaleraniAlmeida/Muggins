@@ -400,7 +400,7 @@
         setMessage(error.message);
         $("#sync-indicator").textContent = "!";
         $("#sync-label").textContent = "Sem sincronização";
-        $("#sync-indicator").parentElement.style.background = "conic-gradient(#ff8e8e 0deg 360deg)";
+        $("#sync-status").classList.add("error");
         disableActions();
       } finally {
         loading = false;
@@ -468,8 +468,9 @@
       if (selectedIndex !== null && selectedIndex >= state.hand.length) selectedIndex = null;
       const isFinished = state.phase === "Finished";
       $("#match-label").textContent = `Rodada ${state.round} · até ${state.targetScore} pontos`;
-      $("#opponent-label").textContent = `${state.botName || "Muggins"} · ${state.botScore} pts`;
-      $("#opponent-count").textContent = state.botTileCount;
+      $("#opponent-name").textContent = state.opponentName || state.botName || "Muggins";
+      $("#opponent-score").textContent = state.opponentScore ?? state.botScore ?? 0;
+      $("#opponent-count").textContent = state.opponentTileCount ?? state.botTileCount ?? 0;
       $("#human-name").textContent = state.humanName || "Você";
       $("#human-score").textContent = state.humanScore;
       $("#human-count").textContent = state.humanTileCount;
@@ -486,9 +487,9 @@
         ? `${state.leftEnd} + ${state.rightEnd}`
         : `${leftEndCount} + ${rightEndCount}`;
       $("#turn-indicator").textContent = turnText(state);
-      $("#sync-indicator").textContent = "●";
+      $("#sync-indicator").textContent = "✓";
       $("#sync-label").textContent = "Estado confirmado pela API";
-      $("#sync-indicator").parentElement.style.background = "conic-gradient(#66d99b 0deg 360deg)";
+      $("#sync-status").classList.remove("error");
       finishButton.disabled = !isFinished || actionInProgress;
       finishButton.title = isFinished
         ? "Voltar à sala após o encerramento confirmado pela API."
@@ -503,13 +504,13 @@
 
       const opponentHand = $("#opponent-hand");
       opponentHand.replaceChildren();
-      const backCount = Math.min(7, state.botTileCount);
+      const backCount = Math.min(7, state.opponentTileCount ?? state.botTileCount ?? 0);
       for (let index = 0; index < backCount; index += 1) {
         const back = document.createElement("span");
         back.className = "back-tile";
         opponentHand.append(back);
       }
-      opponentHand.setAttribute("aria-label", `${state.botTileCount} peças do oponente, viradas para baixo`);
+      opponentHand.setAttribute("aria-label", `${state.opponentTileCount ?? state.botTileCount ?? 0} peças do oponente, viradas para baixo`);
 
       renderBoard(state);
 
