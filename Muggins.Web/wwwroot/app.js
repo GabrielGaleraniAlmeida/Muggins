@@ -574,9 +574,9 @@
       const tileGap = 0;
       const availableHeight = Math.max(90, boardHeight * 0.84);
       const isDoubleTile = (piece) => piece.leftValue === piece.rightValue;
-      let maxTileWidth = Math.min(116, boardWidth);
+      let maxTileWidth = Math.min(104, boardWidth);
       const buildCenteredLayout = (candidateWidth) => {
-        const candidateHeight = candidateWidth * 66 / 116;
+        const candidateHeight = candidateWidth / 2;
         const lines = [];
         const turns = [];
         const horizontalDoubleIndices = new Set();
@@ -780,8 +780,8 @@
       board.style.setProperty("--board-tile-width", `${tileWidth}px`);
       board.style.setProperty("--board-tile-height", `${tileHeight}px`);
       board.style.height = `${layout?.height || tileHeight}px`;
-      board.style.setProperty("--board-pip-core", `${Math.max(1.7, tileWidth * 0.036)}px`);
-      board.style.setProperty("--board-pip-halo", `${Math.max(2.3, tileWidth * 0.045)}px`);
+      board.style.setProperty("--board-pip-core", `${Math.max(2.2, tileWidth * 0.05)}px`);
+      board.style.setProperty("--board-pip-halo", `${Math.max(2.8, tileWidth * 0.061)}px`);
 
       for (let rowIndex = 0; rowIndex < layout.lines.length; rowIndex += 1) {
         const line = layout.lines[rowIndex];
