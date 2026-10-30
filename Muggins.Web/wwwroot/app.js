@@ -883,6 +883,11 @@
     if (state.isHumanTurn) {
       return ({ Opening: "Jogue a pedra de abertura", Play: "Sua vez", Buy: "Compre uma pedra", Pass: "Você deve passar" })[state.phase] || "Sua vez";
     }
-    return state.turnPlayerName ? `Vez de ${state.turnPlayerName}` : "Aguardando a partida";
+    const playerName = state.turnPlayerName?.trim();
+    if (!playerName) return "Aguardando a partida";
+
+    const normalizedName = playerName.normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").toLocaleLowerCase("pt-BR");
+    if (normalizedName === "voce" || normalizedName === "oponente") return "Oponente jogando";
+    return `${playerName} está jogando`;
   }
 })();
