@@ -217,9 +217,7 @@
     .score-notice-label { font-size: 10px; }
     .score-notice strong { font-size: 16px; }
     .score-notice-points { font-size: 20px; }
-    .board-chain { width: min(86%, 1440px); filter: drop-shadow(0 7px 6px #0009); }
-    /* Owner remains available to assistive technology; keep the played stones visually clean. */
-    .board-owner { display: none; }
+    .board-chain { width: min(86%, 1440px); filter: drop-shadow(0 10px 9px #000c); }
     .table-glass { position: absolute; z-index: 0; width: clamp(68px, 14vh, 142px); aspect-ratio: 1; object-fit: contain; opacity: .94; filter: drop-shadow(0 14px 13px #0009); pointer-events: none; }
     .table-glass-left { top: 2%; left: 1.6%; }
     .table-glass-right { right: 1.4%; bottom: 3%; }
@@ -233,7 +231,7 @@
     .you-meta .piece-caption { order: 3; color: #a9c5e7; font-size: 14px; }
     .player-hand { gap: clamp(5px, .75vw, 13px); }
     .player-hand .domino { width: clamp(52px, 4.5vw, 72px); height: clamp(108px, 14vh, 140px); border-radius: 9px; }
-    .player-hand .half { --pip-core: 5.2px; --pip-halo: 6.3px; }
+    .player-hand .half { --pip-core: 4.4px; --pip-halo: 5.5px; }
     .player-controls { min-width: 0; width: 100%; }
     .actions { grid-template-columns: 1fr 1fr; gap: 8px; }
     .action { min-height: 42px; border-radius: 11px; font-size: 13px; }
@@ -241,29 +239,21 @@
     .match-control { min-height: 34px; border-radius: 9px; font-size: 11px; }
     .match-tools-note { display: none; }
     .selected-caption { min-height: 10px; font-size: 8px; }
-    .domino {
-      border: 1px solid #c9bda5;
-      background: linear-gradient(145deg, #fffdf6 0%, #f6eedf 46%, #e1d4bd 100%);
-      box-shadow: 0 1px 0 #fffdf8, 0 2px 0 #b7a88c, 0 4px 5px #0008,
-        0 8px 12px #0005, inset 0 2px 3px #fff;
-      transform: none;
-    }
-    .domino::before { inset: 1px -2px -4px 1px; border-color: #736653; background: linear-gradient(135deg, #c7b99e, #83765f 55%, #4e483d); }
-    .domino::after { background: linear-gradient(145deg, #ffffff70 0%, #ffffff22 18%, transparent 48%, #826c4d16 100%); }
-    .domino.horizontal { width: 104px; height: 52px; }
-    .domino.vertical { width: 52px; height: 104px; }
-    .board-tile.horizontal { width: var(--board-tile-width, 104px); height: var(--board-tile-height, 52px); }
-    .board-tile.vertical { width: var(--board-tile-height, 52px); height: var(--board-tile-width, 104px); }
-    .half { background-color: #f1e8d9; box-shadow: inset 1px 2px 3px #fff, inset -2px -2px 4px #8d765b5c; }
-    .horizontal .half + .half { border-left: 1px solid #372b1d; box-shadow: inset 1px 2px 3px #fff, inset -2px -2px 4px #8d765b5c, -1px 0 #fff8; }
-    .vertical .half + .half { border-top: 1px solid #372b1d; box-shadow: inset 1px 2px 3px #fff, inset -2px -2px 4px #8d765b5c, 0 -1px #fff8; }
+    .domino { border: 2px solid #d7e2ed; border-radius: 7px; background: linear-gradient(145deg, #fffdf6, #d9d2c7); box-shadow: 0 1px 0 #f7fbff, 0 2px 0 #bbc5cf, 0 5px 0 #87939e, 0 10px 14px #0009, inset 0 1px 1px #fff; transform: perspective(720px) rotateX(8deg) rotateY(-2deg); transform-style: preserve-3d; }
+    .domino::before { inset: 2px -3px -5px 2px; border-color: #8997a4; background: linear-gradient(130deg, #edf5fc, #b5c1cc 40%, #748391); box-shadow: 0 3px 5px #0007; transform: translateZ(-3px); }
+    .domino::after { background: linear-gradient(135deg, #fff8, transparent 33%, #273f5611 100%); }
+    .domino.horizontal { width: 116px; height: 66px; }
+    .domino.vertical { width: 66px; height: 116px; }
+    .board-tile.horizontal { width: var(--board-tile-width, 116px); height: var(--board-tile-height, 66px); }
+    .board-tile.vertical { width: var(--board-tile-height, 66px); height: var(--board-tile-width, 116px); }
+    .half { background-color: #eee8dc; box-shadow: inset 1px 1px 1px #fff9, inset -1px -1px 2px #8c847938; }
+    .horizontal .half + .half { border-left: 1px solid #aaa197; box-shadow: inset 1px 1px 1px #fff9, inset -1px -1px 2px #8c847938; }
+    .vertical .half + .half { border-top: 1px solid #aaa197; box-shadow: inset 1px 1px 1px #fff9, inset -1px -1px 2px #8c847938; }
     .back-tile { border: 2px solid #d8ecff; border-radius: 9px; background-image: repeating-linear-gradient(45deg, transparent 0 4px, #d9eaff28 5px, transparent 6px 9px), repeating-linear-gradient(-45deg, transparent 0 4px, #d9eaff21 5px, transparent 6px 9px), linear-gradient(145deg, #0877f7, #0646bb 58%, #03245b); box-shadow: 0 1px 0 #fff, 0 4px 0 #829bb2, 0 9px 14px #000b, inset 0 0 0 3px #0e5fe0, inset 1px 1px 2px #fff; }
-    .half[data-v="6"] { background-image: radial-gradient(circle at 27% 20%, #8a7760 0, #3b3025 calc(var(--pip-core) * .34), #17120d calc(var(--pip-core) * .68), #030201 var(--pip-core), transparent var(--pip-halo)), radial-gradient(circle at 73% 20%, #8a7760 0, #3b3025 calc(var(--pip-core) * .34), #17120d calc(var(--pip-core) * .68), #030201 var(--pip-core), transparent var(--pip-halo)), radial-gradient(circle at 27% 50%, #8a7760 0, #3b3025 calc(var(--pip-core) * .34), #17120d calc(var(--pip-core) * .68), #030201 var(--pip-core), transparent var(--pip-halo)), radial-gradient(circle at 73% 50%, #8a7760 0, #3b3025 calc(var(--pip-core) * .34), #17120d calc(var(--pip-core) * .68), #030201 var(--pip-core), transparent var(--pip-halo)), radial-gradient(circle at 27% 80%, #8a7760 0, #3b3025 calc(var(--pip-core) * .34), #17120d calc(var(--pip-core) * .68), #030201 var(--pip-core), transparent var(--pip-halo)), radial-gradient(circle at 73% 80%, #8a7760 0, #3b3025 calc(var(--pip-core) * .34), #17120d calc(var(--pip-core) * .68), #030201 var(--pip-core), transparent var(--pip-halo)); }
-    .vertical .half[data-v="6"] { background-image: radial-gradient(circle at 27% 20%, #8a7760 0, #3b3025 calc(var(--pip-core) * .34), #17120d calc(var(--pip-core) * .68), #030201 var(--pip-core), transparent var(--pip-halo)), radial-gradient(circle at 73% 20%, #8a7760 0, #3b3025 calc(var(--pip-core) * .34), #17120d calc(var(--pip-core) * .68), #030201 var(--pip-core), transparent var(--pip-halo)), radial-gradient(circle at 27% 50%, #8a7760 0, #3b3025 calc(var(--pip-core) * .34), #17120d calc(var(--pip-core) * .68), #030201 var(--pip-core), transparent var(--pip-halo)), radial-gradient(circle at 73% 50%, #8a7760 0, #3b3025 calc(var(--pip-core) * .34), #17120d calc(var(--pip-core) * .68), #030201 var(--pip-core), transparent var(--pip-halo)), radial-gradient(circle at 27% 80%, #8a7760 0, #3b3025 calc(var(--pip-core) * .34), #17120d calc(var(--pip-core) * .68), #030201 var(--pip-core), transparent var(--pip-halo)), radial-gradient(circle at 73% 80%, #8a7760 0, #3b3025 calc(var(--pip-core) * .34), #17120d calc(var(--pip-core) * .68), #030201 var(--pip-core), transparent var(--pip-halo)); }
-    .half[data-v], .vertical .half[data-v] { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(3, minmax(0, 1fr)); place-items: center; padding: 9%; background-image: linear-gradient(112deg, #fff7 0%, #fff1 34%, #75664a12 100%), radial-gradient(ellipse at 30% 22%, #fffdf6 0%, #f4ead7 57%, #dfd0b5 100%); }
+    .half[data-v], .vertical .half[data-v] { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(3, minmax(0, 1fr)); place-items: center; padding: 9%; background-image: none; }
     .half.six-pips { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .vertical .half.six-pips { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .pip { position: relative; z-index: 1; width: min(84%, calc(var(--pip-core) * 2.15)); aspect-ratio: 1; border-radius: 50%; background: radial-gradient(circle at 32% 25%, #514b43 0%, #191714 32%, #050505 72%, #000 100%); box-shadow: 0 1px 1.5px #000b, inset 0 0 1px #8f836b; }
+    .pip { position: relative; z-index: 1; width: min(84%, calc(var(--pip-halo) * 2)); aspect-ratio: 1; border-radius: 50%; background: radial-gradient(circle at center, #211d1b var(--pip-core), transparent var(--pip-halo)); box-shadow: none; }
     .game-screen::after { content: ""; position: absolute; z-index: -1; inset: 0; opacity: .25; mix-blend-mode: soft-light; pointer-events: none; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.55'/%3E%3C/svg%3E"); }
     @media (max-width: 1100px) and (min-width: 701px) {
       .opponent-card { width: 230px; }
@@ -283,7 +273,7 @@
       .you-meta small { font-size: 18px; }
       .you-meta .piece-caption { font-size: 11px; }
       .player-hand .domino { width: clamp(28px, 4.1vw, 45px); height: 100px; }
-      .player-hand .half { --pip-core: 3px; --pip-halo: 4px; }
+      .player-hand .half { --pip-core: 3.3px; --pip-halo: 4.4px; }
       .action { min-height: 38px; padding: 0 4px; font-size: 11px; }
       .match-control { min-height: 30px; font-size: 10px; }
     }
@@ -328,7 +318,7 @@
       .you-meta .piece-caption { font-size: 8px; }
       .player-hand { grid-column: 1 / -1; grid-row: 2; justify-content: center; gap: 4px; }
       .player-hand .domino { width: clamp(27px, 8vw, 42px); height: 68px; border-width: 1px; border-radius: 5px; }
-      .player-hand .half { --pip-core: 2.3px; --pip-halo: 3px; }
+      .player-hand .half { --pip-core: 2.5px; --pip-halo: 3.3px; }
       .player-controls { grid-column: 2; grid-row: 1 / span 2; }
       .actions { gap: 4px; }
       .action { min-height: 34px; padding: 0 4px; border-radius: 7px; font-size: 9px; }
@@ -370,7 +360,7 @@
       .you-meta .piece-caption { font-size: clamp(8px, 1.4vh, 14px); }
       .player-hand { gap: clamp(4px, .75vw, 10px); }
       .player-hand .domino { width: clamp(42px, 4.5vw, 72px); height: clamp(76px, 14vh, 140px); }
-      .player-hand .half { --pip-core: clamp(3.5px, .42vw, 5.2px); --pip-halo: clamp(4.3px, .52vw, 6.3px); }
+      .player-hand .half { --pip-core: clamp(3.9px, .46vw, 5.7px); --pip-halo: clamp(4.8px, .57vw, 6.9px); }
       .actions { gap: 5px; }
       .action { min-height: clamp(27px, 4.3vh, 42px); padding: 0 4px; font-size: clamp(9px, 1.3vh, 13px); }
       .match-controls { gap: 5px; margin-top: 5px; }
@@ -435,6 +425,6 @@
     </section>
   </main>
   <div class="game-message" id="game-message" role="status" aria-live="polite" hidden></div>
-  <script src="/app.js?v=board-art-20261030-2" defer></script>
+  <script src="/app.js?v=domino-style-96c-20261030" defer></script>
 </body>
 </html>
