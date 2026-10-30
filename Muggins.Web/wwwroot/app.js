@@ -721,30 +721,24 @@
       };
 
       let layout = null;
-      let tileWidth = 38;
-      let bestLayoutScore = -1;
-      for (let candidateWidth = maxTileWidth; candidateWidth >= 38; candidateWidth -= 0.5) {
+      const minTileWidth = Math.min(44, maxTileWidth);
+      let tileWidth = minTileWidth;
+      for (let candidateWidth = maxTileWidth; candidateWidth >= minTileWidth; candidateWidth -= 0.5) {
         const candidateLayout = buildCenteredLayout(candidateWidth);
         if (!candidateLayout || candidateLayout.height > availableHeight ||
           candidateLayout.minX < 0 || candidateLayout.maxX > boardWidth ||
           candidateLayout.openingCenterY > boardZoneHeight / 2 ||
           candidateLayout.height - candidateLayout.openingCenterY > boardZoneHeight / 2) continue;
 
-        const rowsToScore = candidateLayout.lines.filter(line => line.indices.length > 1);
-        if (rowsToScore.length === 0) rowsToScore.push(candidateLayout.lines[0]);
-        const averageFill = rowsToScore.reduce((sum, line) =>
-          sum + Math.min(1, line.width / boardWidth), 0) / rowsToScore.length;
-        const layoutScore = candidateWidth * averageFill * averageFill;
-        if (layoutScore > bestLayoutScore) {
-          bestLayoutScore = layoutScore;
-          layout = candidateLayout;
-          tileWidth = candidateWidth;
-        }
+        // Use the largest pieces that fit so long chains wrap into readable rows.
+        layout = candidateLayout;
+        tileWidth = candidateWidth;
+        break;
       }
 
       if (!layout) {
-        layout = buildCenteredLayout(38);
-        tileWidth = 38;
+        layout = buildCenteredLayout(minTileWidth);
+        tileWidth = minTileWidth;
       }
       const tileHeight = layout?.tileHeight || tileWidth * 66 / 116;
       const horizontalDoubleIndices = new Set(layout.horizontalDoubleIndices || []);
@@ -780,8 +774,8 @@
       board.style.setProperty("--board-tile-width", `${tileWidth}px`);
       board.style.setProperty("--board-tile-height", `${tileHeight}px`);
       board.style.height = `${layout?.height || tileHeight}px`;
-      board.style.setProperty("--board-pip-core", `${Math.max(2.2, tileWidth * 0.05)}px`);
-      board.style.setProperty("--board-pip-halo", `${Math.max(2.8, tileWidth * 0.061)}px`);
+      board.style.setProperty("--board-pip-core", `${Math.max(2.6, tileWidth * 0.05)}px`);
+      board.style.setProperty("--board-pip-halo", `${Math.max(3.4, tileWidth * 0.061)}px`);
 
       for (let rowIndex = 0; rowIndex < layout.lines.length; rowIndex += 1) {
         const line = layout.lines[rowIndex];
