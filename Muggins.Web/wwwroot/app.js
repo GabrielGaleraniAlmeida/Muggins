@@ -46,6 +46,7 @@
   if (page === "match") initializeMatch();
 
   function initializeLobby() {
+    let latestLobby = null;
     const overlay = $("#auth-overlay");
     const emailForm = $("#email-form");
     const tokenForm = $("#token-form");
@@ -107,6 +108,10 @@
     $("#prepare-human").addEventListener("click", () => preparePlayer("human", "Você", $("#prepare-human")));
     $("#prepare-bot").addEventListener("click", () => preparePlayer("bot", "Muggins", $("#prepare-bot")));
     $("#start-match").addEventListener("click", startMatch);
+    $("#hero-play").addEventListener("click", () => startMachineFromHome($("#hero-play")));
+    $("#feature-machine").addEventListener("click", () => startMachineFromHome($("#feature-machine")));
+    $("#hero-online").addEventListener("click", showOnlineOptions);
+    $("#feature-online").addEventListener("click", showOnlineOptions);
     $("#create-online").addEventListener("click", createOnlineMatch);
     $("#join-online").addEventListener("click", joinOnlineMatch);
     $("#join-room-code").addEventListener("keydown", (event) => {
@@ -123,6 +128,69 @@
     $("#disconnect").addEventListener("click", disconnect);
     loadLobby();
     window.setInterval(loadLobby, 3000);
+
+    async function startMachineFromHome(button) {
+      if (!latestLobby) {
+        scrollToSetup("#lobby-status");
+        setLobbyMessage("Carregando seu perfil…");
+        return;
+      }
+
+      if (!latestLobby.connected) {
+        setLobbyMessage("Conecte sua conta FIAP para começar a jogar.");
+        $("#connect-open").click();
+        return;
+      }
+
+      if (latestLobby.activeMatchId) {
+        window.location.href = "/partida.html";
+        return;
+      }
+
+      if (!latestLobby.humanPlayer?.ready) {
+        scrollToSetup("#prepare-human");
+        setLobbyMessage("Prepare seu perfil para iniciar a partida.");
+        return;
+      }
+
+      if (!latestLobby.botPlayer?.ready) {
+        scrollToSetup("#prepare-bot");
+        setLobbyMessage("Prepare o perfil Muggins para jogar contra a máquina.");
+        return;
+      }
+
+      setBusy(button, true, "Iniciando…");
+      try {
+        await startMatch();
+      } finally {
+        setBusy(button, false);
+      }
+    }
+
+    function showOnlineOptions() {
+      const focusTarget = !latestLobby?.connected
+        ? null
+        : latestLobby.activeMatchId
+          ? "#resume-match"
+          : latestLobby.humanPlayer?.ready
+            ? "#join-room-code"
+            : "#prepare-human";
+      scrollToSetup(focusTarget);
+      if (!latestLobby?.connected) {
+        setLobbyMessage("Conecte sua conta FIAP para criar ou entrar em uma sala.");
+        $("#connect-open").click();
+      } else if (latestLobby.activeMatchId) {
+        setLobbyMessage("Você já tem uma partida ativa. Use o botão para continuar ou compartilhe o código da sala.");
+      } else if (!latestLobby.humanPlayer?.ready) {
+        setLobbyMessage("Prepare seu perfil antes de entrar em uma partida online.");
+        window.setTimeout(() => $("#prepare-human").focus(), 350);
+      }
+    }
+
+    function scrollToSetup(focusSelector) {
+      $("#setup-panel").scrollIntoView({ behavior: "smooth", block: "start" });
+      if (focusSelector) window.setTimeout(() => $(focusSelector)?.focus(), 350);
+    }
 
     async function preparePlayer(role, name, button) {
       setBusy(button, true, "Preparando…");
@@ -250,6 +318,7 @@
     }
 
     function renderLobby(lobby) {
+      latestLobby = lobby;
       const connected = lobby.connected;
       const humanReady = Boolean(lobby.humanPlayer?.ready);
       const botReady = Boolean(lobby.botPlayer?.ready);
@@ -257,6 +326,8 @@
       const onlineMatch = lobby.matchMode === "Online" && hasMatch;
       $("#profile-name").textContent = lobby.humanPlayer?.name || "Você";
       $("#profile-status").textContent = connected ? "Conta FIAP conectada" : "Conta não conectada";
+      $("#header-connection-label").textContent = connected ? "Conectado" : "Conta desconectada";
+      $("#header-connection").classList.toggle("disconnected", !connected);
       $("#disclaimer").textContent = connected
         ? "Motor Muggins conectado à API"
         : "Prévia visual da mesa · conecte-se para jogar";
