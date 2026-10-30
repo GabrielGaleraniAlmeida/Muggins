@@ -886,8 +886,8 @@
     const playerName = state.turnPlayerName?.trim();
     if (!playerName) return "Aguardando a partida";
 
-    const normalizedName = playerName.normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").toLocaleLowerCase("pt-BR");
-    if (normalizedName === "voce" || normalizedName === "oponente") return "Oponente jogando";
+    const normalizedName = playerName.toLocaleLowerCase("pt-BR");
+    if (["você", "voce", "oponente"].includes(normalizedName)) return "Oponente jogando";
     return `${playerName} está jogando`;
   }
 })();
