@@ -572,9 +572,9 @@
         : Math.floor((boardTiles.length - 1) / 2);
       const openingIndex = Math.max(0, Math.min(boardTiles.length - 1, requestedOpeningIndex));
       const tileGap = 0;
-      const availableHeight = Math.max(90, boardHeight * 0.84);
+      const availableHeight = Math.max(90, boardHeight * 0.95);
       const isDoubleTile = (piece) => piece.leftValue === piece.rightValue;
-      let maxTileWidth = Math.min(104, boardWidth);
+      let maxTileWidth = Math.min(148, boardWidth);
       const buildCenteredLayout = (candidateWidth) => {
         const candidateHeight = candidateWidth / 2;
         const lines = [];
@@ -721,7 +721,7 @@
       };
 
       let layout = null;
-      const minTileWidth = Math.min(44, maxTileWidth);
+      const minTileWidth = Math.min(boardWidth < 760 ? 44 : boardWidth < 900 ? 54 : 88, maxTileWidth);
       let tileWidth = minTileWidth;
       for (let candidateWidth = maxTileWidth; candidateWidth >= minTileWidth; candidateWidth -= 0.5) {
         const candidateLayout = buildCenteredLayout(candidateWidth);
@@ -774,8 +774,8 @@
       board.style.setProperty("--board-tile-width", `${tileWidth}px`);
       board.style.setProperty("--board-tile-height", `${tileHeight}px`);
       board.style.height = `${layout?.height || tileHeight}px`;
-      board.style.setProperty("--board-pip-core", `${Math.max(2.6, tileWidth * 0.05)}px`);
-      board.style.setProperty("--board-pip-halo", `${Math.max(3.4, tileWidth * 0.061)}px`);
+      board.style.setProperty("--board-pip-core", `${Math.max(3.2, tileWidth * 0.06)}px`);
+      board.style.setProperty("--board-pip-halo", `${Math.max(4, tileWidth * 0.07)}px`);
 
       for (let rowIndex = 0; rowIndex < layout.lines.length; rowIndex += 1) {
         const line = layout.lines[rowIndex];

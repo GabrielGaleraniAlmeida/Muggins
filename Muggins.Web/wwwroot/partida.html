@@ -217,7 +217,9 @@
     .score-notice-label { font-size: 10px; }
     .score-notice strong { font-size: 16px; }
     .score-notice-points { font-size: 20px; }
-    .board-chain { width: min(72%, 1120px); filter: drop-shadow(0 10px 9px #000c); }
+    .board-chain { width: min(86%, 1440px); filter: drop-shadow(0 7px 6px #0009); }
+    /* Owner remains available to assistive technology; keep the played stones visually clean. */
+    .board-owner { display: none; }
     .table-glass { position: absolute; z-index: 0; width: clamp(68px, 14vh, 142px); aspect-ratio: 1; object-fit: contain; opacity: .94; filter: drop-shadow(0 14px 13px #0009); pointer-events: none; }
     .table-glass-left { top: 2%; left: 1.6%; }
     .table-glass-right { right: 1.4%; bottom: 3%; }
@@ -240,13 +242,13 @@
     .match-tools-note { display: none; }
     .selected-caption { min-height: 10px; font-size: 8px; }
     .domino {
-      border: 1px solid #c5b493;
-      background: linear-gradient(145deg, #fff9eb 0%, #f4ead8 48%, #d8c9ae 100%);
-      box-shadow: 0 1px 0 #fffdf8, 0 2px 0 #b7a88c, 0 5px 0 #796d5a,
-        0 9px 12px #0009, 0 15px 20px #0005, inset 0 2px 3px #fff;
-      transform: perspective(1000px) rotateX(1deg);
+      border: 1px solid #c9bda5;
+      background: linear-gradient(145deg, #fffdf6 0%, #f6eedf 46%, #e1d4bd 100%);
+      box-shadow: 0 1px 0 #fffdf8, 0 2px 0 #b7a88c, 0 4px 5px #0008,
+        0 8px 12px #0005, inset 0 2px 3px #fff;
+      transform: none;
     }
-    .domino::before { inset: 2px -3px -6px 2px; border-color: #736653; background: linear-gradient(135deg, #c7b99e, #83765f 55%, #4e483d); }
+    .domino::before { inset: 1px -2px -4px 1px; border-color: #736653; background: linear-gradient(135deg, #c7b99e, #83765f 55%, #4e483d); }
     .domino::after { background: linear-gradient(145deg, #ffffff70 0%, #ffffff22 18%, transparent 48%, #826c4d16 100%); }
     .domino.horizontal { width: 104px; height: 52px; }
     .domino.vertical { width: 52px; height: 104px; }
@@ -261,7 +263,7 @@
     .half[data-v], .vertical .half[data-v] { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(3, minmax(0, 1fr)); place-items: center; padding: 9%; background-image: linear-gradient(112deg, #fff7 0%, #fff1 34%, #75664a12 100%), radial-gradient(ellipse at 30% 22%, #fffdf6 0%, #f4ead7 57%, #dfd0b5 100%); }
     .half.six-pips { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .vertical .half.six-pips { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .pip { position: relative; z-index: 1; width: min(78%, calc(var(--pip-core) * 2)); aspect-ratio: 1; border-radius: 50%; background: radial-gradient(circle at 32% 25%, #45423d 0%, #171512 32%, #050505 72%, #000 100%); box-shadow: 0 1px 1.5px #000b, inset 0 0 1px #8f836b; }
+    .pip { position: relative; z-index: 1; width: min(84%, calc(var(--pip-core) * 2.15)); aspect-ratio: 1; border-radius: 50%; background: radial-gradient(circle at 32% 25%, #514b43 0%, #191714 32%, #050505 72%, #000 100%); box-shadow: 0 1px 1.5px #000b, inset 0 0 1px #8f836b; }
     .game-screen::after { content: ""; position: absolute; z-index: -1; inset: 0; opacity: .25; mix-blend-mode: soft-light; pointer-events: none; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.55'/%3E%3C/svg%3E"); }
     @media (max-width: 1100px) and (min-width: 701px) {
       .opponent-card { width: 230px; }
@@ -433,6 +435,6 @@
     </section>
   </main>
   <div class="game-message" id="game-message" role="status" aria-live="polite" hidden></div>
-  <script src="/app.js?v=board-fit-20261030" defer></script>
+  <script src="/app.js?v=board-art-20261030-2" defer></script>
 </body>
 </html>
