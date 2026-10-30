@@ -253,6 +253,7 @@
     .half[data-v], .vertical .half[data-v] { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(3, minmax(0, 1fr)); place-items: center; padding: 9%; background-image: none; }
     .half.six-pips { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .vertical .half.six-pips { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .horizontal .half.six-pips { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(0, 1fr)); }
     .pip { position: relative; z-index: 1; width: min(84%, calc(var(--pip-halo) * 2)); aspect-ratio: 1; border-radius: 50%; background: radial-gradient(circle at center, #211d1b var(--pip-core), transparent var(--pip-halo)); box-shadow: none; }
     .game-screen::after { content: ""; position: absolute; z-index: -1; inset: 0; opacity: .25; mix-blend-mode: soft-light; pointer-events: none; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.55'/%3E%3C/svg%3E"); }
     @media (max-width: 1100px) and (min-width: 701px) {
@@ -425,6 +426,6 @@
     </section>
   </main>
   <div class="game-message" id="game-message" role="status" aria-live="polite" hidden></div>
-  <script src="/app.js?v=domino-style-96c-20261030" defer></script>
+  <script src="/app.js?v=domino-style-96c-horizontal-six-20261030" defer></script>
 </body>
 </html>

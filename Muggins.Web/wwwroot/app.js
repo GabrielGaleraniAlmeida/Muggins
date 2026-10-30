@@ -888,7 +888,10 @@
       half.className = "half";
       half.dataset.v = String(value);
       if (value === 6) half.classList.add("six-pips");
-      for (const [row, column] of pipPositions[value] || []) {
+      const positions = value === 6 && !isVertical
+        ? pipPositions[value].map(([row, column]) => [column, row])
+        : pipPositions[value] || [];
+      for (const [row, column] of positions) {
         const pip = document.createElement("span");
         pip.className = "pip";
         pip.style.gridRow = String(row);
