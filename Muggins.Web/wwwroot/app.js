@@ -370,9 +370,7 @@
     rightButton.addEventListener("click", () => play("right"));
     buyButton.addEventListener("click", () => submitAction("buy"));
     passButton.addEventListener("click", () => submitAction("pass"));
-    finishButton.addEventListener("click", () => {
-      if (currentMatch?.phase === "Finished") window.location.href = "/";
-    });
+    finishButton.addEventListener("click", finishMatch);
     restartButton.addEventListener("click", restartMatch);
     window.addEventListener("resize", () => {
       if (currentMatch) renderBoard(currentMatch);
@@ -441,18 +439,22 @@
 
     async function restartMatch() {
       if (actionInProgress || currentMatch?.phase !== "Finished") return;
-      if (!window.confirm("Criar uma nova partida com a mesma pontuação-alvo?")) return;
+      if (!window.confirm("Reiniciar com os mesmos participantes e placar zerado?")) return;
 
       actionInProgress = true;
-      setBusy(restartButton, true, "Abrindo…");
-      setMessage("Criando uma nova partida…");
+      setBusy(restartButton, true, "Reiniciando…");
+      setMessage("Reiniciando a partida pela API…");
       let restartError = null;
       try {
-        await callApi("/app-api/matches/vs-bot", {
+        const updatedMatch = await callApi("/app-api/match/restart", {
           method: "POST",
-          body: { targetScore: currentMatch.targetScore }
+          body: {}
         });
-        window.location.replace("/partida.html");
+        showScoreNotice(currentMatch, updatedMatch);
+        currentMatch = updatedMatch;
+        selectedIndex = null;
+        renderMatch(currentMatch);
+        setMessage("Nova partida iniciada pela API.");
       } catch (error) {
         restartError = error.message;
       } finally {
@@ -460,6 +462,40 @@
         setBusy(restartButton, false);
         if (currentMatch) renderMatch(currentMatch);
         if (restartError) setMessage(restartError);
+      }
+    }
+
+    async function finishMatch() {
+      if (actionInProgress || !currentMatch) return;
+      if (currentMatch.phase === "Finished") {
+        window.location.href = "/";
+        return;
+      }
+      if (!window.confirm("Cancelar a partida sem vencedor? O placar e o histórico serão preservados.")) return;
+
+      actionInProgress = true;
+      setBusy(finishButton, true, "Cancelando…");
+      setMessage("Cancelando a partida pela API…");
+      let cancelError = null;
+      try {
+        const previousMatchId = currentMatch.matchId;
+        const updatedMatch = await callApi("/app-api/match/cancel", {
+          method: "POST",
+          body: {}
+        });
+        currentMatch = updatedMatch;
+        selectedIndex = null;
+        renderMatch(currentMatch);
+        setMessage(updatedMatch.matchId !== previousMatchId
+          ? "A partida foi reiniciada por outro participante."
+          : "Partida cancelada. O placar e o histórico foram preservados.");
+      } catch (error) {
+        cancelError = error.message;
+      } finally {
+        actionInProgress = false;
+        setBusy(finishButton, false);
+        if (currentMatch) renderMatch(currentMatch);
+        if (cancelError) setMessage(cancelError);
       }
     }
 
@@ -490,17 +526,18 @@
       $("#sync-indicator").textContent = "✓";
       $("#sync-label").textContent = "Estado confirmado pela API";
       $("#sync-status").classList.remove("error");
-      finishButton.disabled = !isFinished || actionInProgress;
+      finishButton.disabled = actionInProgress;
+      finishButton.textContent = isFinished ? "Voltar à sala" : "Cancelar partida";
       finishButton.title = isFinished
         ? "Voltar à sala após o encerramento confirmado pela API."
-        : "A API atual não permite encerrar ou abandonar uma partida em andamento.";
+        : "Cancelar a partida sem vencedor; o placar e o histórico serão preservados.";
       restartButton.disabled = !isFinished || actionInProgress;
       restartButton.title = isFinished
-        ? "Criar uma nova partida com a mesma pontuação-alvo."
+        ? "Reiniciar com os mesmos participantes e placar zerado."
         : "Disponível quando a partida terminar pelas regras da API.";
       $("#match-controls-note").textContent = isFinished
         ? "Partida encerrada pela API"
-        : "Encerramento depende das regras da API";
+        : "Você pode cancelar a partida antes do fim.";
 
       const opponentHand = $("#opponent-hand");
       opponentHand.replaceChildren();
@@ -548,7 +585,7 @@
       passButton.classList.toggle("target-action", !passButton.disabled);
 
       if (state.phase === "Finished") {
-        const winner = state.winnerName || "Empate";
+        const winner = state.winnerName || "sem vencedor";
         setMessage(`Partida encerrada · ${winner}`);
       }
     }

@@ -401,6 +401,70 @@ public static class WebEndpoints
             return Results.Ok(view);
         }, ct));
 
+        app.MapPost("/app-api/match/cancel", (HttpContext context, EncryptedSessionStore sessions,
+            MugginsApiClient api, MugginsBot bot, CancellationToken ct) => ProtectAsync(async () =>
+        {
+            await using var lease = await sessions.OpenAsync(context, ct);
+            var session = lease.Data;
+            var token = RequireToken(session);
+            var (humanId, humanKey) = GetCredentials(session, "human");
+
+            if (session.PendingAction is not null)
+            {
+                await SubmitPendingActionAsync(session, lease, api, token, ct);
+            }
+
+            var matchId = RequireMatch(session);
+            var state = await api.GetMatchStateAsync(token, humanKey, matchId, humanId, ct);
+            if (state.Situacao == SituacaoPartida.Encerrada)
+            {
+                throw new WebRequestException(StatusCodes.Status409Conflict,
+                    "A partida já terminou; use reiniciar ou volte à sala.");
+            }
+
+            session.PendingAction = new PendingApiAction(
+                "human", "cancel", null, null, null, state.VersaoEstado, Guid.NewGuid());
+            await lease.SaveAsync(ct);
+            var confirmation = await SubmitPendingActionAsync(session, lease, api, token, ct);
+            var cancelledState = confirmation.Estado ?? await api.GetMatchStateAsync(
+                token, humanKey, matchId, humanId, ct);
+            var view = await RefreshMatchAsync(
+                session, lease, api, bot, ct, runBotTurn: false, confirmedHumanState: cancelledState);
+            return Results.Ok(view);
+        }, ct));
+
+        app.MapPost("/app-api/match/restart", (HttpContext context, EncryptedSessionStore sessions,
+            MugginsApiClient api, MugginsBot bot, CancellationToken ct) => ProtectAsync(async () =>
+        {
+            await using var lease = await sessions.OpenAsync(context, ct);
+            var session = lease.Data;
+            var token = RequireToken(session);
+            var (humanId, humanKey) = GetCredentials(session, "human");
+
+            if (session.PendingAction is not null)
+            {
+                await SubmitPendingActionAsync(session, lease, api, token, ct);
+            }
+
+            var matchId = RequireMatch(session);
+            var state = await api.GetMatchStateAsync(token, humanKey, matchId, humanId, ct);
+            if (state.Situacao != SituacaoPartida.Encerrada)
+            {
+                throw new WebRequestException(StatusCodes.Status409Conflict,
+                    "A partida precisa terminar ou ser cancelada antes de reiniciar.");
+            }
+
+            session.PendingAction = new PendingApiAction(
+                "human", "restart", null, null, null, state.VersaoEstado, Guid.NewGuid());
+            await lease.SaveAsync(ct);
+            var confirmation = await SubmitPendingActionAsync(session, lease, api, token, ct);
+            var restartedState = confirmation.Estado
+                ?? await api.GetMatchStateAsync(token, humanKey, RequireMatch(session), humanId, ct);
+            var view = await RefreshMatchAsync(
+                session, lease, api, bot, ct, confirmedHumanState: restartedState);
+            return Results.Ok(view);
+        }, ct));
+
         app.MapPost("/app-api/match/action", (HumanActionBody body, HttpContext context,
             EncryptedSessionStore sessions, MugginsApiClient api, MugginsBot bot, CancellationToken ct) => ProtectAsync(async () =>
         {
@@ -413,6 +477,7 @@ public static class WebEndpoints
             if (session.PendingAction is not null)
             {
                 await SubmitPendingActionAsync(session, lease, api, token, ct);
+                matchId = RequireMatch(session);
             }
 
             var state = await api.GetMatchStateAsync(token, humanKey, matchId, humanId, ct);
@@ -474,10 +539,14 @@ public static class WebEndpoints
             {
                 confirmedHumanState = confirmation.Estado ?? confirmedHumanState;
             }
+            matchId = RequireMatch(session);
         }
 
         var humanState = confirmedHumanState ?? await api.GetMatchStateAsync(
             token, humanKey, matchId, humanId, cancellationToken);
+        humanState = await FollowRestartIfAvailableAsync(
+            session, lease, api, token, humanKey, humanId, matchId, humanState, cancellationToken);
+        matchId = RequireMatch(session);
         if (humanState.Situacao == SituacaoPartida.AguardandoInicio)
         {
             var joinedPlayerIds = (humanState.Participantes ?? [])
@@ -549,14 +618,66 @@ public static class WebEndpoints
         {
             var confirmation = await SubmitPendingActionAsync(session, lease, api, token, cancellationToken);
             confirmedHumanState = confirmation.Estado ?? confirmedHumanState;
+            matchId = RequireMatch(session);
         }
 
         var state = confirmedHumanState ?? await api.GetMatchStateAsync(
             token, humanKey, matchId, humanId, cancellationToken);
+        state = await FollowRestartIfAvailableAsync(
+            session, lease, api, token, humanKey, humanId, matchId, state, cancellationToken);
+        matchId = RequireMatch(session);
         EnsureKnownBoard(session, state);
         var opponentId = state.Participantes?.FirstOrDefault(player => player.JogadorId != humanId)?.JogadorId
             ?? Guid.Empty;
         return BuildMatchView(session, state, humanId, opponentId);
+    }
+
+    private static async Task<EstadoPartidaParticipanteDto> FollowRestartIfAvailableAsync(
+        BrowserSessionData session,
+        EncryptedSessionStore.SessionLease lease,
+        MugginsApiClient api,
+        string token,
+        string activationKey,
+        Guid playerId,
+        Guid previousMatchId,
+        EstadoPartidaParticipanteDto currentState,
+        CancellationToken cancellationToken)
+    {
+        if (currentState.Situacao != SituacaoPartida.Encerrada)
+        {
+            return currentState;
+        }
+
+        try
+        {
+            var restartedState = await api.GetRestartedMatchAsync(
+                token, activationKey, previousMatchId, playerId, cancellationToken);
+            if (restartedState.PartidaId == previousMatchId)
+            {
+                return currentState;
+            }
+
+            AdoptRestartedMatch(session, restartedState);
+            EnsureKnownBoard(session, restartedState);
+            await lease.SaveAsync(cancellationToken);
+            return restartedState;
+        }
+        catch (MugginsApiException exception) when (exception.StatusCode == HttpStatusCode.NotFound)
+        {
+            return currentState;
+        }
+    }
+
+    private static void AdoptRestartedMatch(
+        BrowserSessionData session,
+        EstadoPartidaParticipanteDto restartedState)
+    {
+        var matchMode = session.MatchMode;
+        var isMatchHost = session.IsMatchHost;
+        session.ResetMatch();
+        session.MatchMode = matchMode;
+        session.IsMatchHost = isMatchHost;
+        session.MatchId = restartedState.PartidaId;
     }
 
     private static PendingApiAction ValidateHumanAction(
@@ -655,6 +776,7 @@ public static class WebEndpoints
         var (playerId, activationKey) = GetCredentials(session, pending.Role);
         var matchId = RequireMatch(session);
 
+        var restartRequestConfirmed = false;
         try
         {
             var confirmation = await (pending.Kind switch
@@ -670,12 +792,33 @@ public static class WebEndpoints
                 }, cancellationToken),
                 "buy" => api.BuyAsync(token, activationKey, matchId, MakeActionRequest(), cancellationToken),
                 "pass" => api.PassAsync(token, activationKey, matchId, MakeActionRequest(), cancellationToken),
+                "cancel" => api.CancelMatchAsync(token, activationKey, matchId, MakeActionRequest(), cancellationToken),
+                "restart" => api.RestartMatchAsync(token, activationKey, matchId, MakeActionRequest(), cancellationToken),
                 _ => throw new InvalidOperationException("Tipo de ação pendente desconhecido.")
             });
+            restartRequestConfirmed = pending.Kind == "restart";
 
             if (pending.Kind == "play")
             {
                 ApplyPlayedTile(session, playerId, pending);
+            }
+            else if (pending.Kind == "restart")
+            {
+                var restartedState = confirmation.Estado;
+                if (restartedState is null || restartedState.PartidaId == matchId)
+                {
+                    restartedState = await api.GetRestartedMatchAsync(
+                        token, activationKey, matchId, playerId, cancellationToken);
+                }
+
+                if (restartedState.PartidaId == matchId)
+                {
+                    throw new InvalidOperationException("A API não retornou um novo identificador de partida após reiniciar.");
+                }
+
+                AdoptRestartedMatch(session, restartedState);
+                EnsureKnownBoard(session, restartedState);
+                confirmation = confirmation with { Estado = restartedState };
             }
 
             session.PendingAction = null;
@@ -688,6 +831,12 @@ public static class WebEndpoints
                 ChaveIdempotencia = pending.IdempotencyKey,
                 JogadorId = playerId
             };
+        }
+        catch (MugginsApiException exception) when (
+            pending.Kind == "restart" && restartRequestConfirmed && exception.StatusCode == HttpStatusCode.NotFound)
+        {
+            await lease.SaveAsync(cancellationToken);
+            throw;
         }
         catch (MugginsApiException exception) when (exception.StatusCode == HttpStatusCode.Conflict)
         {

@@ -151,6 +151,47 @@ public sealed class MugginsApiClient
             activationKey,
             cancellationToken);
 
+    public Task<ConfirmacaoAcaoPartidaDto> CancelMatchAsync(
+        string accessToken,
+        string activationKey,
+        Guid matchId,
+        AcaoRequestDto body,
+        CancellationToken cancellationToken = default) =>
+        SendForJsonAsync<ConfirmacaoAcaoPartidaDto>(
+            HttpMethod.Post,
+            $"api/partidas/{matchId:D}/cancelar",
+            accessToken,
+            body,
+            activationKey,
+            cancellationToken);
+
+    public Task<ConfirmacaoAcaoPartidaDto> RestartMatchAsync(
+        string accessToken,
+        string activationKey,
+        Guid matchId,
+        AcaoRequestDto body,
+        CancellationToken cancellationToken = default) =>
+        SendForJsonAsync<ConfirmacaoAcaoPartidaDto>(
+            HttpMethod.Post,
+            $"api/partidas/{matchId:D}/reiniciar",
+            accessToken,
+            body,
+            activationKey,
+            cancellationToken);
+
+    public Task<EstadoPartidaParticipanteDto> GetRestartedMatchAsync(
+        string accessToken,
+        string activationKey,
+        Guid previousMatchId,
+        Guid playerId,
+        CancellationToken cancellationToken = default) =>
+        SendForJsonAsync<EstadoPartidaParticipanteDto>(
+            HttpMethod.Get,
+            WithQuery($"api/partidas/{previousMatchId:D}/reinicio", ("jogadorId", playerId.ToString("D"))),
+            accessToken,
+            activationKey: activationKey,
+            cancellationToken: cancellationToken);
+
     public Task<EstadoPartidaParticipanteDto> GetMatchStateAsync(
         string accessToken,
         string activationKey,

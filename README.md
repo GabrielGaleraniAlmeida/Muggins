@@ -30,6 +30,8 @@ O token da conta e as chaves de ativação não são enviados ao navegador. O se
 
 Após cada ação, a tela mostra o estado e o placar confirmados pela API. No modo contra o computador, o Muggins joga no turno seguinte; na sala online, cada jogador vê a atualização depois que o adversário joga. As peças identificam quem as colocou.
 
+Durante uma partida, **Cancelar partida** encerra o jogo sem vencedor e preserva placar e histórico. Depois do encerramento ou cancelamento, **Reiniciar** usa a API para criar outra partida com os mesmos participantes, novo identificador e placar zerado; os demais clientes acompanham o novo identificador automaticamente.
+
 O motor usa o histórico das jogadas enviadas por esta interface para manter as pontas do tabuleiro. Na partida online, cada cliente sincroniza as peças novas com o estado da API e encaixa as jogadas nas pontas conhecidas.
 
 Consulte [Muggins.Engine/README.md](Muggins.Engine/README.md) para detalhes das regras e da integração. O projeto de testes permanente fica em `Muggins.Engine.Tests/`.
