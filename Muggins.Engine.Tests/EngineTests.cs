@@ -58,6 +58,48 @@ internal static class EngineTests
         return Task.CompletedTask;
     }
 
+    public static Task BotHandlesAuthorizedPhasesAsync()
+    {
+        var bot = new MugginsBot();
+        var expectedActions = new[]
+        {
+            (TurnPhase.Wait, BotActionKind.None),
+            (TurnPhase.Finished, BotActionKind.None),
+            (TurnPhase.Buy, BotActionKind.Buy),
+            (TurnPhase.Pass, BotActionKind.Pass)
+        };
+
+        foreach (var (phase, expectedKind) in expectedActions)
+        {
+            var action = bot.ChooseAction(new TurnState([], new BoardEnds(), phase));
+            TestAssert.Equal(expectedKind, action.Kind,
+                $"The bot should return {expectedKind} when the API phase is {phase}.");
+        }
+
+        return Task.CompletedTask;
+    }
+
+    public static Task BotChoosesHighestScoringLegalPlayAsync()
+    {
+        var state = new TurnState(
+            [new Tile(6, 4), new Tile(2, 3), new Tile(0, 1)],
+            new BoardEnds(2, 6, rightIsDouble: true),
+            TurnPhase.Play);
+        var action = new MugginsBot().ChooseAction(state);
+
+        TestAssert.Equal(BotActionKind.Play, action.Kind, "A playable turn should produce a play action.");
+        TestAssert.Equal(new Tile(2, 3), action.Tile!.Value,
+            "The bot should choose the legal play that scores three points immediately.");
+        TestAssert.Equal(MoveSide.Left, action.Side!.Value,
+            "The chosen 2|3 must be played at the left endpoint to score.");
+        TestAssert.Equal(3, action.EstimatedPoints,
+            "The bot's estimate should count the exposed double-six as twelve.");
+        TestAssert.True(MugginsRules.LegalPlays(state.Hand, state.Ends)
+                .Contains(new LegalPlay(action.Tile.Value, action.Side.Value)),
+            "The bot must only return a move currently legal at the API-reported ends.");
+        return Task.CompletedTask;
+    }
+
     public static Task ApiJsonAndBoardMappingAsync()
     {
         const string json = """{"partidaId":"aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa","versaoEstado":9,"situacao":1,"numeroRodada":2,"proximaAcao":2,"minhaMao":[{"valorA":1,"valorB":4}],"tabuleiro":[],"participantes":[],"pedraAberturaObrigatoria":{"valorA":6,"valorB":6},"participacaoId":"cccccccc-cccc-cccc-cccc-cccccccccccc"}""";

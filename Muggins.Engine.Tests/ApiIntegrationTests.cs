@@ -131,6 +131,76 @@ internal static class ApiIntegrationTests
         TestAssert.Equal(2, handler.Requests.Count, "The coordinator must not resubmit a stale decision.");
     }
 
+    public static async Task CancelAndRestartUseActivationCredentialsAsync()
+    {
+        var confirmation = new ConfirmacaoAcaoPartidaDto
+        {
+            ChaveIdempotencia = Guid.Parse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee")
+        };
+        var handler = new StubHandler((_, _) => Task.FromResult(Json(HttpStatusCode.OK, confirmation)));
+        var api = new MugginsApiClient(new HttpClient(handler));
+        var cancelKey = Guid.Parse("11111111-1111-1111-1111-111111111111");
+        var restartKey = Guid.Parse("22222222-2222-2222-2222-222222222222");
+
+        await api.CancelMatchAsync("opaque-token", "activation-key", MatchId,
+            new AcaoRequestDto { JogadorId = PlayerId, VersaoEsperada = 31, ChaveIdempotencia = cancelKey });
+        await api.RestartMatchAsync("opaque-token", "activation-key", MatchId,
+            new AcaoRequestDto { JogadorId = PlayerId, VersaoEsperada = 32, ChaveIdempotencia = restartKey });
+
+        TestAssert.Equal("/api/partidas/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/cancelar",
+            handler.Requests[0].Uri.AbsolutePath, "Cancel should use the official cancel endpoint.");
+        TestAssert.Equal("/api/partidas/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa/reiniciar",
+            handler.Requests[1].Uri.AbsolutePath, "Restart should use the official restart endpoint.");
+        foreach (var request in handler.Requests)
+        {
+            TestAssert.Equal("Bearer opaque-token", request.Authorization,
+                "Match management must send the account bearer token.");
+            TestAssert.Equal("activation-key", request.ActivationKey,
+                "Match management must send the selected player's activation key.");
+            TestAssert.True(request.Body!.Contains($"\"jogadorId\":\"{PlayerId:D}\"", StringComparison.Ordinal),
+                "Match management must identify the participating player.");
+        }
+
+        TestAssert.True(handler.Requests[0].Body!.Contains($"\"chaveIdempotencia\":\"{cancelKey:D}\"", StringComparison.Ordinal),
+            "Cancel must submit its idempotency key.");
+        TestAssert.True(handler.Requests[1].Body!.Contains($"\"chaveIdempotencia\":\"{restartKey:D}\"", StringComparison.Ordinal),
+            "Restart must submit its idempotency key.");
+    }
+
+    public static async Task RestartLookupUsesParticipantQueryAsync()
+    {
+        var restartedId = Guid.Parse("ffffffff-ffff-ffff-ffff-ffffffffffff");
+        var state = Snapshot(version: 1, next: ProximaAcaoPartida.JogarAbertura) with { PartidaId = restartedId };
+        var handler = new StubHandler((_, _) => Task.FromResult(Json(HttpStatusCode.OK, state)));
+        var api = new MugginsApiClient(new HttpClient(handler));
+
+        var result = await api.GetRestartedMatchAsync("token", "activation", MatchId, PlayerId);
+
+        TestAssert.Equal(restartedId, result.PartidaId, "The restarted match state should be returned.");
+        TestAssert.Equal($"/api/partidas/{MatchId:D}/reinicio", handler.Requests[0].Uri.AbsolutePath,
+            "Restart lookup should use the previous match ID.");
+        TestAssert.True(handler.Requests[0].Uri.Query.Contains($"jogadorId={PlayerId:D}", StringComparison.Ordinal),
+            "Restart lookup should be scoped to the participating player.");
+        TestAssert.Equal("activation", handler.Requests[0].ActivationKey,
+            "Restart lookup should include the activation key.");
+    }
+
+    public static async Task PreservesUnauthorizedStatusAndCodeAsync()
+    {
+        var handler = new StubHandler((_, _) => Task.FromResult(Json(HttpStatusCode.Unauthorized,
+            new RespostaErroDto { Codigo = "TOKEN_INVALIDO" })));
+        var api = new MugginsApiClient(new HttpClient(handler));
+
+        var exception = await TestAssert.ThrowsAsync<MugginsApiException>(
+            () => api.GetSessionAsync("expired-token"),
+            "An unauthorized API response should remain an API exception.");
+
+        TestAssert.True(exception.StatusCode == HttpStatusCode.Unauthorized,
+            "The adapter should preserve the API's HTTP status.");
+        TestAssert.Equal("TOKEN_INVALIDO", exception.ApiError?.Codigo,
+            "The adapter should preserve the API's error code for the UI.");
+    }
+
     private static EstadoPartidaParticipanteDto Snapshot(long version, ProximaAcaoPartida next) => new()
     {
         PartidaId = MatchId,

@@ -8,13 +8,18 @@ internal static class Program
         {
             (nameof(EngineTests.RulesScoreAndFindLegalPlaysAsync), EngineTests.RulesScoreAndFindLegalPlaysAsync),
             (nameof(EngineTests.BotChoosesRequiredOpeningAsync), EngineTests.BotChoosesRequiredOpeningAsync),
+            (nameof(EngineTests.BotHandlesAuthorizedPhasesAsync), EngineTests.BotHandlesAuthorizedPhasesAsync),
+            (nameof(EngineTests.BotChoosesHighestScoringLegalPlayAsync), EngineTests.BotChoosesHighestScoringLegalPlayAsync),
             (nameof(EngineTests.ApiJsonAndBoardMappingAsync), EngineTests.ApiJsonAndBoardMappingAsync),
             (nameof(ApiIntegrationTests.RequestsTokenAndCreatesPlayerAsync), ApiIntegrationTests.RequestsTokenAndCreatesPlayerAsync),
             (nameof(ApiIntegrationTests.ActivatesPlayerWithSeparateKeyAsync), ApiIntegrationTests.ActivatesPlayerWithSeparateKeyAsync),
             (nameof(ApiIntegrationTests.CoordinatorSkipsSubmissionWhenWaitingAsync), ApiIntegrationTests.CoordinatorSkipsSubmissionWhenWaitingAsync),
             (nameof(ApiIntegrationTests.CoordinatorSubmitsWithVersionAndCredentialsAsync), ApiIntegrationTests.CoordinatorSubmitsWithVersionAndCredentialsAsync),
             (nameof(ApiIntegrationTests.Updates204ReturnsNullAsync), ApiIntegrationTests.Updates204ReturnsNullAsync),
-            (nameof(ApiIntegrationTests.CoordinatorReturnsAuthoritativeStateOnConflictAsync), ApiIntegrationTests.CoordinatorReturnsAuthoritativeStateOnConflictAsync)
+            (nameof(ApiIntegrationTests.CoordinatorReturnsAuthoritativeStateOnConflictAsync), ApiIntegrationTests.CoordinatorReturnsAuthoritativeStateOnConflictAsync),
+            (nameof(ApiIntegrationTests.CancelAndRestartUseActivationCredentialsAsync), ApiIntegrationTests.CancelAndRestartUseActivationCredentialsAsync),
+            (nameof(ApiIntegrationTests.RestartLookupUsesParticipantQueryAsync), ApiIntegrationTests.RestartLookupUsesParticipantQueryAsync),
+            (nameof(ApiIntegrationTests.PreservesUnauthorizedStatusAndCodeAsync), ApiIntegrationTests.PreservesUnauthorizedStatusAndCodeAsync)
         };
 
         var failures = 0;

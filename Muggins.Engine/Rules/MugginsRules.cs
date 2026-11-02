@@ -8,6 +8,7 @@ namespace Muggins.Engine.Rules;
 /// </summary>
 public static class MugginsRules
 {
+    /// <summary>Returns the two exposed ends after adding a tile to the selected side.</summary>
     public static BoardEnds ResultingEnds(BoardEnds ends, Tile tile, MoveSide side)
     {
         if (ends.IsEmpty)
@@ -37,6 +38,8 @@ public static class MugginsRules
         throw new ArgumentOutOfRangeException(nameof(side));
     }
 
+    /// <summary>Calculates estimated Ponta de Quina points for the exposed ends.</summary>
+    /// <remarks>The official score is always supplied by the API; an exposed double counts both halves.</remarks>
     public static int PointsForEnds(BoardEnds ends)
     {
         if (ends.IsEmpty)
@@ -49,6 +52,7 @@ public static class MugginsRules
         return total % 5 == 0 ? total / 5 : 0;
     }
 
+    /// <summary>Lists distinct legal tile-and-side combinations for the hand and current ends.</summary>
     public static IReadOnlyList<LegalPlay> LegalPlays(IReadOnlyCollection<Tile> hand, BoardEnds ends)
     {
         ArgumentNullException.ThrowIfNull(hand);

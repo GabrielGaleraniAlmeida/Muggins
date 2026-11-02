@@ -24,6 +24,7 @@ public sealed class MugginsApiClient
         }
     }
 
+    /// <summary>Requests a one-time account token to be delivered to the registered email address.</summary>
     public async Task RequestTokenAsync(string email, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(email);
@@ -35,6 +36,7 @@ public sealed class MugginsApiClient
         await EnsureSuccessAsync(response, cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>Validates an account token and returns the authenticated account identity.</summary>
     public Task<SessaoResponseDto> GetSessionAsync(
         string accessToken,
         CancellationToken cancellationToken = default) =>
@@ -44,6 +46,7 @@ public sealed class MugginsApiClient
             accessToken,
             cancellationToken: cancellationToken);
 
+    /// <summary>Revokes an authenticated account token.</summary>
     public async Task RevokeTokenAsync(string accessToken, CancellationToken cancellationToken = default)
     {
         using var request = CreateRequest(HttpMethod.Post, "api/identidade/tokens/revogacao", accessToken);
@@ -51,6 +54,7 @@ public sealed class MugginsApiClient
         await EnsureSuccessAsync(response, cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>Lists player profiles owned by the authenticated account.</summary>
     public Task<IReadOnlyList<PerfilJogadorDto>> ListPlayersAsync(
         string accessToken,
         CancellationToken cancellationToken = default) =>
@@ -60,6 +64,7 @@ public sealed class MugginsApiClient
             accessToken,
             cancellationToken: cancellationToken);
 
+    /// <summary>Creates a player profile under the authenticated account.</summary>
     public Task<PerfilJogadorDto> CreatePlayerAsync(
         string accessToken,
         string? name,
@@ -71,6 +76,7 @@ public sealed class MugginsApiClient
             new CriarJogadorRequestDto { Nome = name },
             cancellationToken: cancellationToken);
 
+    /// <summary>Activates a player profile for this client using its private activation key.</summary>
     public Task<PerfilJogadorDto> ActivatePlayerAsync(
         string accessToken,
         Guid playerId,
@@ -86,6 +92,7 @@ public sealed class MugginsApiClient
             cancellationToken: cancellationToken);
     }
 
+    /// <summary>Releases this client activation for a player profile.</summary>
     public Task<PerfilJogadorDto> DeactivatePlayerAsync(
         string accessToken,
         Guid playerId,
@@ -101,6 +108,7 @@ public sealed class MugginsApiClient
             cancellationToken: cancellationToken);
     }
 
+    /// <summary>Lists matches that are available to join.</summary>
     public Task<IReadOnlyList<PartidaDisponivelDto>> ListAvailableMatchesAsync(
         string accessToken,
         CancellationToken cancellationToken = default) =>
@@ -110,6 +118,7 @@ public sealed class MugginsApiClient
             accessToken,
             cancellationToken: cancellationToken);
 
+    /// <summary>Creates a match for the specified player and target score.</summary>
     public Task<EstadoPartidaParticipanteDto> CreateMatchAsync(
         string accessToken,
         string activationKey,
@@ -123,6 +132,7 @@ public sealed class MugginsApiClient
             activationKey,
             cancellationToken);
 
+    /// <summary>Joins an available match using its current version and an idempotency key.</summary>
     public Task<ConfirmacaoAcaoPartidaDto> JoinMatchAsync(
         string accessToken,
         string activationKey,
@@ -137,6 +147,7 @@ public sealed class MugginsApiClient
             activationKey,
             cancellationToken);
 
+    /// <summary>Starts a match after the API confirms that its participants are ready.</summary>
     public Task<ConfirmacaoAcaoPartidaDto> StartMatchAsync(
         string accessToken,
         string activationKey,
@@ -151,6 +162,7 @@ public sealed class MugginsApiClient
             activationKey,
             cancellationToken);
 
+    /// <summary>Cancels an open match through the authoritative API.</summary>
     public Task<ConfirmacaoAcaoPartidaDto> CancelMatchAsync(
         string accessToken,
         string activationKey,
@@ -165,6 +177,7 @@ public sealed class MugginsApiClient
             activationKey,
             cancellationToken);
 
+    /// <summary>Requests a new match for the same participants after the previous match ends.</summary>
     public Task<ConfirmacaoAcaoPartidaDto> RestartMatchAsync(
         string accessToken,
         string activationKey,
@@ -179,6 +192,7 @@ public sealed class MugginsApiClient
             activationKey,
             cancellationToken);
 
+    /// <summary>Finds the new match created by a restart request for this player.</summary>
     public Task<EstadoPartidaParticipanteDto> GetRestartedMatchAsync(
         string accessToken,
         string activationKey,
@@ -192,6 +206,7 @@ public sealed class MugginsApiClient
             activationKey: activationKey,
             cancellationToken: cancellationToken);
 
+    /// <summary>Reads the private, participant-specific view of a match.</summary>
     public Task<EstadoPartidaParticipanteDto> GetMatchStateAsync(
         string accessToken,
         string activationKey,
@@ -205,7 +220,7 @@ public sealed class MugginsApiClient
             activationKey: activationKey,
             cancellationToken: cancellationToken);
 
-    /// <summary>Returns null for the API's 204 no-change response.</summary>
+    /// <summary>Reads state changes since a known version, returning null for HTTP 204.</summary>
     public async Task<EstadoPartidaParticipanteDto?> GetUpdatesAsync(
         string accessToken,
         string activationKey,
@@ -232,6 +247,7 @@ public sealed class MugginsApiClient
             cancellationToken).ConfigureAwait(false);
     }
 
+    /// <summary>Reads a public match view without exposing either participant's hand.</summary>
     public Task<EstadoPartidaObservadorDto> ObserveMatchAsync(
         string accessToken,
         Guid matchId,
@@ -242,6 +258,7 @@ public sealed class MugginsApiClient
             accessToken,
             cancellationToken: cancellationToken);
 
+    /// <summary>Submits a human tile play using the expected match version.</summary>
     public Task<ConfirmacaoAcaoPartidaDto> PlayAsync(
         string accessToken,
         string activationKey,
@@ -256,6 +273,7 @@ public sealed class MugginsApiClient
             activationKey,
             cancellationToken);
 
+    /// <summary>Submits a request to buy a tile using the expected match version.</summary>
     public Task<ConfirmacaoAcaoPartidaDto> BuyAsync(
         string accessToken,
         string activationKey,
@@ -270,6 +288,7 @@ public sealed class MugginsApiClient
             activationKey,
             cancellationToken);
 
+    /// <summary>Submits a pass using the expected match version.</summary>
     public Task<ConfirmacaoAcaoPartidaDto> PassAsync(
         string accessToken,
         string activationKey,
@@ -333,6 +352,7 @@ public sealed class MugginsApiClient
         };
     }
 
+    /// <summary>Reads the official result and event history for a completed match.</summary>
     public Task<ResultadoHistoricoPartidaDto> GetMatchResultAsync(
         string accessToken,
         string activationKey,
@@ -346,6 +366,7 @@ public sealed class MugginsApiClient
             activationKey: activationKey,
             cancellationToken: cancellationToken);
 
+    /// <summary>Creates a cryptographically random 64-character hexadecimal activation key.</summary>
     public static string GeneratePlayerActivationKey() =>
         Convert.ToHexString(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32));
 

@@ -1,0 +1,35 @@
+name: .NET checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore
+        run: dotnet restore Muggins.sln
+
+      - name: Build
+        run: dotnet build Muggins.sln --no-restore
+
+      - name: Check C# whitespace conventions
+        run: dotnet format whitespace Muggins.sln --verify-no-changes --no-restore
+
+      - name: Run automated scenarios
+        run: dotnet run --project Muggins.Engine.Tests/Muggins.Engine.Tests.csproj --no-build --no-restore

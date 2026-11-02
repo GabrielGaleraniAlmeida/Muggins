@@ -1,0 +1,72 @@
+classDiagram
+    direction LR
+
+    class WebBootstrap
+    class WebEndpoints
+    class WebContracts
+    class WebErrors
+    class EncryptedSessionStore
+    class BrowserSessionData
+    class PlacedTile
+    class PendingApiAction
+    class MatchView
+
+    class MugginsApiClient
+    class BotTurnCoordinator
+    class ApiGameStateMapper
+    class EstadoPartidaParticipanteDto
+    class OfficialDominoApi
+
+    class MugginsBot
+    class MugginsRules
+    class TurnState
+    class Tile
+    class BoardEnds
+    class BotAction
+    class LegalPlay
+
+    class TestRunner
+    class EngineTests
+    class ApiIntegrationTests
+    class StubHandler
+    class TestAssert
+
+    WebBootstrap ..> WebEndpoints : maps routes
+    WebBootstrap ..> EncryptedSessionStore : registers
+    WebBootstrap ..> MugginsApiClient : registers
+    WebBootstrap ..> MugginsBot : registers
+
+    WebEndpoints ..> WebContracts : accepts and returns
+    WebEndpoints ..> WebErrors : converts failures
+    WebEndpoints --> EncryptedSessionStore : reads and saves
+    WebEndpoints --> MugginsApiClient : queries and sends actions
+    WebEndpoints --> MugginsBot : runs autonomous turns
+    WebEndpoints ..> MatchView : builds browser state
+    EncryptedSessionStore --> BrowserSessionData : persists
+    BrowserSessionData *-- PlacedTile : board
+    BrowserSessionData --> PendingApiAction : retries idempotently
+
+    MugginsApiClient ..> OfficialDominoApi : HTTP and JSON
+    MugginsApiClient ..> EstadoPartidaParticipanteDto : deserializes
+    BotTurnCoordinator --> MugginsApiClient : reads and submits
+    BotTurnCoordinator --> MugginsBot : chooses a move
+    BotTurnCoordinator ..> ApiGameStateMapper : converts API state
+    ApiGameStateMapper ..> EstadoPartidaParticipanteDto : reads
+    ApiGameStateMapper ..> TurnState : creates
+
+    MugginsBot --> TurnState : analyzes
+    MugginsBot ..> MugginsRules : evaluates moves
+    MugginsBot ..> BotAction : returns
+    MugginsRules ..> BoardEnds : scores exposed ends
+    MugginsRules ..> LegalPlay : lists legal moves
+    TurnState *-- Tile : private hand
+    TurnState --> BoardEnds : current endpoints
+    LegalPlay --> Tile : candidate tile
+    BotAction --> Tile : optional played tile
+
+    TestRunner ..> EngineTests : runs
+    TestRunner ..> ApiIntegrationTests : runs
+    EngineTests ..> TestAssert : checks behavior
+    ApiIntegrationTests ..> TestAssert : checks HTTP
+    ApiIntegrationTests ..> StubHandler : simulates API
+    ApiIntegrationTests ..> BotTurnCoordinator : exercises a bot turn

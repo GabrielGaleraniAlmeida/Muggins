@@ -23,7 +23,7 @@ A API oficial é a autoridade para distribuir as pedras, validar jogadas, contro
 
 ## Diagrama de classes
 
-O diagrama apresenta as classes principais e suas dependências. `WebBootstrap` representa a configuração de serviços e rotas feita em `Muggins.Web/Program.cs` com instruções top-level.
+O diagrama apresenta as classes principais e suas dependências. `WebBootstrap` representa a configuração de serviços e rotas feita em `Muggins.Web/Program.cs` com instruções top-level. O arquivo-fonte Mermaid também está disponível em [`docs/diagrama-de-classes.mmd`](docs/diagrama-de-classes.mmd) para revisão e exportação.
 
 ```mermaid
 classDiagram
@@ -117,7 +117,7 @@ classDiagram
 - Conta FIAP/API habilitada, com acesso ao e-mail cadastrado para receber o token.
 - Navegador atualizado.
 
-O cliente usa por padrão [`https://domino-quina-api-b1-pf2261.azurewebsites.net/`](https://domino-quina-api-b1-pf2261.azurewebsites.net/). A URL está definida em `MugginsApiClient.DefaultBaseAddress`, em `Muggins.Engine/Api/MugginsApiClient.cs`. O Swagger atual está disponível [neste endereço](https://domino-quina-api-b1-pf2261.azurewebsites.net/swagger/v1/swagger.json).
+O cliente usa por padrão [`https://domino-quina-api-b1-pf2261.azurewebsites.net/`](https://domino-quina-api-b1-pf2261.azurewebsites.net/), o endereço atual confirmado para esta entrega. A URL está definida em `MugginsApiClient.DefaultBaseAddress`, em `Muggins.Engine/Api/MugginsApiClient.cs`. O Swagger está disponível [neste endereço](https://domino-quina-api-b1-pf2261.azurewebsites.net/swagger/v1/swagger.json). Se o professor substituir o host, atualize o valor e este README juntos antes da demonstração.
 
 ## Instalação, build e execução
 
@@ -180,9 +180,11 @@ Execute o runner na raiz do repositório:
 dotnet run --project Muggins.Engine.Tests/Muggins.Engine.Tests.csproj
 ```
 
-O runner executa nove cenários e termina com código diferente de zero quando algum falha. A cobertura atual inclui cálculo de pontos e jogadas legais, abertura obrigatória do bot, desserialização e orientação do tabuleiro, solicitação de token, criação e ativação de jogador, cabeçalhos e corpo das chamadas HTTP, chave de idempotência, resposta `204` sem atualização e conflito `409` com estado autoritativo. Os testes do adaptador usam um handler HTTP simulado: não precisam de credenciais e não acessam a API real. O projeto usa esse runner próprio, por isso o comando é `dotnet run`, não `dotnet test`.
+O runner executa **14 cenários** e termina com código diferente de zero quando algum falha. A cobertura inclui cálculo de pontos com duplas abertas, jogadas legais, escolha de abertura e fases do bot, escolha de uma jogada pontuadora, desserialização e orientação do tabuleiro, autenticação e ativação de perfil, cabeçalhos e chave de idempotência, cancelamento e reinício, consulta do novo identificador, resposta `204`, conflito `409` e preservação de erros `401` da API. Os testes HTTP usam um handler simulado: não precisam de credenciais e não acessam a API real. O projeto usa esse runner próprio, por isso o comando é `dotnet run`, não `dotnet test`.
 
-Os testes cobrem o motor e a integração HTTP isolada; a interface web completa e uma partida online real precisam de validação manual com acesso à API.
+A interface web completa e uma partida online real ainda precisam de validação manual com acesso à API. Use o [checklist de validação da entrega](docs/validacao-da-entrega.md) e registre o commit e a saída dos testes.
+
+O GitHub Actions compila a solução e executa o runner em cada atualização de `main` e em pull requests. A checagem de whitespace aplica as regras do `.editorconfig`.
 
 ## Convenções de código
 

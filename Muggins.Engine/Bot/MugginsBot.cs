@@ -3,9 +3,11 @@ using Muggins.Engine.Rules;
 
 namespace Muggins.Engine.Bot;
 
-/// <summary>First deterministic policy for the autonomous Muggins player.</summary>
+/// <summary>Deterministic heuristic policy for the autonomous Muggins player.</summary>
 public sealed class MugginsBot
 {
+    /// <summary>Chooses one action allowed by the API-confirmed turn phase.</summary>
+    /// <remarks>For playable turns, immediate score is preferred, followed by follow-up options and hand flexibility.</remarks>
     public BotAction ChooseAction(TurnState state)
     {
         ArgumentNullException.ThrowIfNull(state);
