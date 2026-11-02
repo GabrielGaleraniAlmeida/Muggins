@@ -52,13 +52,15 @@
     const tokenForm = $("#token-form");
     const authMessage = $("#auth-message");
 
-    $("#connect-open").addEventListener("click", () => {
+    const openAuthDialog = () => {
       overlay.hidden = false;
       authMessage.textContent = "";
       emailForm.hidden = false;
       tokenForm.hidden = true;
       $("#login-email").focus();
-    });
+    };
+    $("#connect-open")?.addEventListener("click", openAuthDialog);
+    $("#connect-inline")?.addEventListener("click", openAuthDialog);
     $("#auth-close").addEventListener("click", () => { overlay.hidden = true; });
     overlay.addEventListener("click", (event) => {
       if (event.target === overlay) overlay.hidden = true;
@@ -274,6 +276,7 @@
         : "Muggins: não preparado");
 
       setHidden("#connect-open", connected);
+      setHidden("#connect-inline", connected);
       setHidden("#prepare-human", !connected || humanReady);
       setHidden("#prepare-bot", !connected || botReady);
       setHidden("#start-match", hasMatch);
