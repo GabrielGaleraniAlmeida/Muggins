@@ -6,9 +6,9 @@ namespace Muggins.Engine.Api;
 public static class ApiGameStateMapper
 {
     /// <summary>
-    /// Maps a participant snapshot. The OpenAPI document does not define tile ordering/orientation
-    /// in <c>tabuleiro</c>. For a non-empty board, callers must provide an endpoint resolver based
-    /// on the server's confirmed convention; the mapper refuses to guess and risk an invalid move.
+    /// Maps a participant snapshot. The API returns <c>tabuleiro</c> from left to right: the first
+    /// tile's <c>valorA</c> is the left endpoint and the last tile's <c>valorB</c> is the right
+    /// endpoint. A resolver can override this mapping for a nonstandard API implementation.
     /// </summary>
     public static TurnState ToTurnState(
         EstadoPartidaParticipanteDto state,
@@ -20,16 +20,9 @@ public static class ApiGameStateMapper
             .Select(piece => new Tile(piece.ValorA, piece.ValorB))
             .ToArray();
         var board = state.Tabuleiro ?? Array.Empty<PecaPartidaDto>();
-        if (board.Count > 0 && boardEndsResolver is null)
-        {
-            throw new InvalidOperationException(
-                "The API contract does not define board order/orientation. " +
-                "Supply a boardEndsResolver based on the server's confirmed convention.");
-        }
-
         var ends = board.Count == 0
             ? new BoardEnds()
-            : boardEndsResolver!(board);
+            : boardEndsResolver?.Invoke(board) ?? ResolveBoardEnds(board);
 
         var phase = state.ProximaAcao switch
         {
@@ -47,5 +40,27 @@ public static class ApiGameStateMapper
             : null;
 
         return new TurnState(hand, ends, phase, openingTile);
+    }
+
+    private static BoardEnds ResolveBoardEnds(IReadOnlyList<PecaPartidaDto> board)
+    {
+        for (var index = 1; index < board.Count; index++)
+        {
+            if (board[index - 1].ValorB != board[index].ValorA)
+            {
+                throw new InvalidOperationException(
+                    "The API returned a domino board whose pieces are not connected from left to right.");
+            }
+        }
+
+        var first = board[0];
+        var last = board[^1];
+        var isSingleOpeningDouble = board.Count == 1 && first.ValorA == first.ValorB;
+        return new BoardEnds(
+            first.ValorA,
+            last.ValorB,
+            leftIsDouble: board.Count > 1 && first.ValorA == first.ValorB,
+            rightIsDouble: board.Count > 1 && last.ValorA == last.ValorB,
+            sameDoubleTileAtBothEnds: isSingleOpeningDouble);
     }
 }

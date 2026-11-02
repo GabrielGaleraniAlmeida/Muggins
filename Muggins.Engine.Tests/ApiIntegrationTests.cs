@@ -11,6 +11,48 @@ internal static class ApiIntegrationTests
     private static readonly Guid MatchId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
     private static readonly Guid PlayerId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
 
+    public static async Task RequestsTokenAndCreatesPlayerAsync()
+    {
+        var profile = new PerfilJogadorDto { JogadorId = PlayerId, Nome = "Gabriel", Ativo = true };
+        var handler = new StubHandler((request, _) => Task.FromResult(
+            request.RequestUri!.AbsolutePath == "/api/jogadores"
+                ? Json(HttpStatusCode.OK, profile)
+                : new HttpResponseMessage(HttpStatusCode.NoContent)));
+        var api = new MugginsApiClient(new HttpClient(handler));
+
+        await api.RequestTokenAsync("gabriel@example.com");
+        var created = await api.CreatePlayerAsync("account-token", "Gabriel");
+
+        TestAssert.Equal(2, handler.Requests.Count, "Token request and player creation should each send one request.");
+        TestAssert.Equal("/api/identidade/token", handler.Requests[0].Uri.AbsolutePath,
+            "The account token should be requested from the identity endpoint.");
+        TestAssert.True(handler.Requests[0].Body!.Contains("\"email\":\"gabriel@example.com\"", StringComparison.Ordinal),
+            "The token request should include the registered email.");
+        TestAssert.Equal("/api/jogadores", handler.Requests[1].Uri.AbsolutePath,
+            "Player profiles should be created through the players endpoint.");
+        TestAssert.Equal("Bearer account-token", handler.Requests[1].Authorization,
+            "Player creation should authenticate with the account token.");
+        TestAssert.Equal(PlayerId, created.JogadorId, "The created player profile should be returned.");
+    }
+
+    public static async Task ActivatesPlayerWithSeparateKeyAsync()
+    {
+        var profile = new PerfilJogadorDto { JogadorId = PlayerId, Nome = "Gabriel", Ativo = true };
+        var handler = new StubHandler((_, _) => Task.FromResult(Json(HttpStatusCode.OK, profile)));
+        var api = new MugginsApiClient(new HttpClient(handler));
+
+        var activated = await api.ActivatePlayerAsync("account-token", PlayerId, "player-activation-key");
+
+        TestAssert.Equal($"/api/jogadores/{PlayerId:D}/ativar-cliente", handler.Requests[0].Uri.AbsolutePath,
+            "Player activation should use the player activation endpoint.");
+        TestAssert.Equal("Bearer account-token", handler.Requests[0].Authorization,
+            "Player activation should include the account token.");
+        TestAssert.True(handler.Requests[0].Body!.Contains(
+                "\"chaveAtivacao\":\"player-activation-key\"", StringComparison.Ordinal),
+            "Player activation should send its separate key in the request body.");
+        TestAssert.Equal(PlayerId, activated.JogadorId, "The activated profile should be returned.");
+    }
+
     public static async Task CoordinatorSkipsSubmissionWhenWaitingAsync()
     {
         var state = Snapshot(version: 3, next: ProximaAcaoPartida.Aguardar);

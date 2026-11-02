@@ -7,8 +7,10 @@ using Microsoft.AspNetCore.Http;
 
 namespace Muggins.Web;
 
+/// <summary>Maps browser-facing endpoints for identity, player, lobby, and match workflows.</summary>
 public static class WebEndpoints
 {
+    /// <summary>Registers the local application API routes on the ASP.NET Core host.</summary>
     public static void MapMugginsWebEndpoints(this WebApplication app)
     {
         app.MapPost("/app-api/auth/request-token", (RequestTokenBody body, MugginsApiClient api, CancellationToken ct) =>

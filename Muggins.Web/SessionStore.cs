@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.DataProtection;
 
 namespace Muggins.Web;
 
+/// <summary>Private state associated with one browser session and its active game.</summary>
 public sealed class BrowserSessionData
 {
     public string? AccessToken { get; set; }
@@ -48,6 +49,7 @@ public sealed record PendingApiAction(
     long ExpectedVersion,
     Guid IdempotencyKey);
 
+/// <summary>Persists browser sessions with ASP.NET Core Data Protection.</summary>
 public sealed class EncryptedSessionStore
 {
     private const string CookieName = "muggins.sid";

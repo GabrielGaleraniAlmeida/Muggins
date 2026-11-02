@@ -71,14 +71,40 @@ internal static class EngineTests
 
         var occupiedState = dto with
         {
-            Tabuleiro = [new PecaPartidaDto { ValorA = 1, ValorB = 4 }]
+            Tabuleiro =
+            [
+                new PecaPartidaDto { ValorA = 2, ValorB = 4 },
+                new PecaPartidaDto { ValorA = 4, ValorB = 4 }
+            ]
+        };
+        var mappedBoard = ApiGameStateMapper.ToTurnState(occupiedState);
+        TestAssert.Equal(new BoardEnds(2, 4, rightIsDouble: true), mappedBoard.Ends,
+            "An oriented API board should map its endpoints and exposed double.");
+        TestAssert.Equal(2, MugginsRules.PointsForEnds(mappedBoard.Ends),
+            "An exposed double should count both halves when calculating points.");
+
+        var doubleOpeningState = dto with
+        {
+            Tabuleiro = [new PecaPartidaDto { ValorA = 6, ValorB = 6 }]
+        };
+        var doubleOpening = ApiGameStateMapper.ToTurnState(doubleOpeningState);
+        TestAssert.Equal(new BoardEnds(6, 6, sameDoubleTileAtBothEnds: true), doubleOpening.Ends,
+            "A single opening double should be represented at both endpoints.");
+
+        var disconnectedState = dto with
+        {
+            Tabuleiro =
+            [
+                new PecaPartidaDto { ValorA = 1, ValorB = 4 },
+                new PecaPartidaDto { ValorA = 2, ValorB = 3 }
+            ]
         };
         TestAssert.Throws<InvalidOperationException>(
-            () => ApiGameStateMapper.ToTurnState(occupiedState),
-            "An occupied board without a confirmed resolver must fail closed.");
+            () => ApiGameStateMapper.ToTurnState(disconnectedState),
+            "A disconnected API board must be rejected.");
 
-        var resolved = ApiGameStateMapper.ToTurnState(occupiedState, _ => new BoardEnds(1, 4));
-        TestAssert.Equal(new BoardEnds(1, 4), resolved.Ends, "A supplied resolver should map board ends.");
+        var overridden = ApiGameStateMapper.ToTurnState(occupiedState, _ => new BoardEnds(1, 4));
+        TestAssert.Equal(new BoardEnds(1, 4), overridden.Ends, "A supplied resolver should override default mapping.");
         return Task.CompletedTask;
     }
 }

@@ -35,19 +35,16 @@ cabeçalho `X-Jogador-Ativacao`.
 
 ```csharp
 using Muggins.Engine.Api;
-using Muggins.Engine.Domain;
 
 var api = new MugginsApiClient(new HttpClient());
 var activationKey = MugginsApiClient.GeneratePlayerActivationKey();
 
 await api.ActivatePlayerAsync(token, playerId, activationKey);
-Func<IReadOnlyList<PecaPartidaDto>, BoardEnds>? resolver = null;
 var result = await new BotTurnCoordinator(api).RunOnceAsync(
     token,
     activationKey,
     matchId,
-    playerId,
-    boardEndsResolver: resolver);
+    playerId);
 
 // Use result.State como base; em StateConflict, peça uma nova decisão com o estado atualizado.
 ```
@@ -61,12 +58,12 @@ O resultado indica se nenhuma ação era necessária, se a ação foi confirmada
 houve conflito de versão; neste último caso, `State` contém a cópia autoritativa para
 uma nova decisão.
 
-O Swagger não especifica a ordem e a orientação das pedras em `tabuleiro`. O mapeador
-aceita a abertura com tabuleiro vazio, mas exige um `boardEndsResolver` para estados
-com peças na mesa. A interface web registra cada jogada confirmada que ela mesma
-envia, deriva as pontas dessa sequência e confere a quantidade e os valores das pedras
-com a resposta da API. Se uma partida for alterada por outro cliente, o motor pausa
-porque o contrato não permite reconstruir com segurança a orientação das pontas.
+O contrato atual do Swagger define `tabuleiro` em ordem da esquerda para a direita:
+`valorA` da primeira peça é a ponta esquerda e `valorB` da última peça é a ponta
+direita. O mapeador valida a conexão entre as peças e calcula as pontas e os duplos
+expostos. O parâmetro `boardEndsResolver` continua disponível para integrações com uma
+API compatível que use outra convenção. A interface web também reconstrói o tabuleiro
+da resposta autoritativa quando uma nova rodada já contém peças.
 
 ## Exemplo de uso
 
@@ -91,8 +88,15 @@ estimativas de jogadas, mas não altera a pontuação oficial enviada pela API.
 
 ## Testes
 
-O projeto de testes não depende de pacotes externos. Execute-o com:
+O projeto de testes é um runner automatizado sem dependências externas. Na raiz do
+repositório, execute:
 
 ```sh
-dotnet run --project ../Muggins.Engine.Tests/Muggins.Engine.Tests.csproj
+dotnet run --project Muggins.Engine.Tests/Muggins.Engine.Tests.csproj
 ```
+
+Os cenários cobrem regras e pontuação, escolhas do bot, desserialização e mapeamento
+do tabuleiro, solicitação de token, criação e ativação de perfis, autenticação das
+chamadas HTTP, envio de ações com versão e chave de idempotência, respostas `204` e
+conflitos `409`. As chamadas da API são simuladas com um handler local; os testes não
+precisam de uma conta FIAP nem acessam a API real.
