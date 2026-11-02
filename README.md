@@ -2,6 +2,19 @@
 
 Jogo de Dominó Ponta de Quina com motor autônomo em C#, cliente para a API oficial e uma interface web local baseada nas telas de sala e partida do protótipo.
 
+## Demonstração
+
+[Assistir à demonstração do jogo](https://youtu.be/XCLj6HgXgBA)
+
+## Integrantes
+
+| Nome | RM |
+| --- | ---: |
+| Gabriel Dias | 556830 |
+| Gabriel Galerani | 557421 |
+| Gustavo Alves | 557876 |
+| Leonardo Taschin | 554583 |
+
 ## Estrutura
 
 - `Muggins.Engine/`: regras, estratégia do bot, modelos e integração HTTP com a API.
