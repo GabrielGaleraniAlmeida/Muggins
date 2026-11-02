@@ -332,10 +332,10 @@ public static class WebEndpoints
                     "O perfil humano e o perfil do Muggins precisam ser diferentes.");
             }
 
-            if (body.TargetScore is not (50 or 100 or 150))
+            if (body.TargetScore is not (25 or 50 or 100))
             {
                 throw new WebRequestException(StatusCodes.Status400BadRequest,
-                    "Escolha uma partida de 50, 100 ou 150 pontos.");
+                    "Escolha uma partida de 25, 50 ou 100 pontos.");
             }
 
             if (session.MatchId is { } oldMatchId)
@@ -582,7 +582,13 @@ public static class WebEndpoints
             }
         }
 
+        var previousRound = session.Round;
+        var previousBoardCount = session.Board.Count;
         EnsureKnownBoard(session, humanState);
+        if (session.Round != previousRound || session.Board.Count != previousBoardCount)
+        {
+            await lease.SaveAsync(cancellationToken);
+        }
 
         if (runBotTurn && humanState.Situacao == SituacaoPartida.EmAndamento && humanState.JogadorDoTurnoId == botId)
         {
@@ -626,7 +632,13 @@ public static class WebEndpoints
         state = await FollowRestartIfAvailableAsync(
             session, lease, api, token, humanKey, humanId, matchId, state, cancellationToken);
         matchId = RequireMatch(session);
+        var previousRound = session.Round;
+        var previousBoardCount = session.Board.Count;
         EnsureKnownBoard(session, state);
+        if (session.Round != previousRound || session.Board.Count != previousBoardCount)
+        {
+            await lease.SaveAsync(cancellationToken);
+        }
         var opponentId = state.Participantes?.FirstOrDefault(player => player.JogadorId != humanId)?.JogadorId
             ?? Guid.Empty;
         return BuildMatchView(session, state, humanId, opponentId);
@@ -895,14 +907,9 @@ public static class WebEndpoints
     private static void EnsureKnownBoard(BrowserSessionData session, EstadoPartidaParticipanteDto state)
     {
         var apiBoard = state.Tabuleiro;
-        if (session.Round > 0 && state.NumeroRodada > session.Round)
+        var roundAdvanced = session.Round > 0 && state.NumeroRodada > session.Round;
+        if (roundAdvanced)
         {
-            if (apiBoard is { Count: > 0 })
-            {
-                throw new WebRequestException(StatusCodes.Status409Conflict,
-                    "A rodada mudou fora desta tela; não tenho informação suficiente para orientar o tabuleiro com segurança.");
-            }
-
             session.Board.Clear();
             session.LeftEnd = null;
             session.RightEnd = null;
@@ -912,6 +919,17 @@ public static class WebEndpoints
 
         session.Round = state.NumeroRodada;
         apiBoard ??= [];
+
+        if (apiBoard.Count > 0 && session.Board.Count == 0)
+        {
+            RebuildBoardFromApi(session, apiBoard);
+            return;
+        }
+
+        if (roundAdvanced)
+        {
+            return;
+        }
 
         if (apiBoard.Count != session.Board.Count || !SameTileMultiset(apiBoard, session.Board))
         {
@@ -934,6 +952,27 @@ public static class WebEndpoints
             throw new WebRequestException(StatusCodes.Status409Conflict,
                 "A orientação das pontas não está disponível nesta sessão. O motor não vai adivinhar uma jogada.");
         }
+    }
+
+    private static void RebuildBoardFromApi(
+        BrowserSessionData session,
+        IReadOnlyList<PecaPartidaDto> apiBoard)
+    {
+        for (var index = 1; index < apiBoard.Count; index++)
+        {
+            if (apiBoard[index - 1].ValorB != apiBoard[index].ValorA)
+            {
+                throw new WebRequestException(StatusCodes.Status409Conflict,
+                    "A API retornou um tabuleiro que não pode ser sincronizado com segurança. Atualize a tela e tente novamente.");
+            }
+        }
+
+        session.Board = apiBoard
+            .Select(piece => new PlacedTile(piece.ValorA, piece.ValorB, Guid.Empty))
+            .ToList();
+        session.LeftEnd = apiBoard[0].ValorA;
+        session.RightEnd = apiBoard[^1].ValorB;
+        session.OpeningTileIndex = (apiBoard.Count - 1) / 2;
     }
 
     private static bool TrySyncOnlineBoard(
@@ -1174,7 +1213,7 @@ public static class WebEndpoints
                 tile.LeftValue,
                 tile.RightValue,
                 tile.LeftValue == tile.RightValue,
-                tile.PlayerId != humanId)).ToArray(),
+                tile.PlayerId == Guid.Empty ? null : tile.PlayerId != humanId)).ToArray(),
             state.MinhaMao ?? [],
             state.PedraAberturaObrigatoria);
     }
@@ -1232,10 +1271,10 @@ public static class WebEndpoints
 
     private static void ValidateTargetScore(int targetScore)
     {
-        if (targetScore is not (50 or 100 or 150))
+        if (targetScore is not (25 or 50 or 100))
         {
             throw new WebRequestException(StatusCodes.Status400BadRequest,
-                "Escolha uma partida de 50, 100 ou 150 pontos.");
+                "Escolha uma partida de 25, 50 ou 100 pontos.");
         }
     }
 

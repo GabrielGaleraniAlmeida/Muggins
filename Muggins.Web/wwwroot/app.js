@@ -835,15 +835,20 @@
           const secondValue = reverseValues ? piece.leftValue : piece.rightValue;
           const isVerticalDouble = isDoubleTile(piece) && !horizontalDoubleIndices.has(index);
           const tile = createDomino(firstValue, secondValue, isVerticalDouble);
+          const ownerKnown = typeof piece.isBotTile === "boolean";
           const owner = piece.isBotTile ? (state.botName || "Adversário") : "Você";
-          tile.setAttribute("aria-label", `${firstValue} e ${secondValue}, jogada por ${owner}`);
-          tile.title = `Jogada de ${owner}`;
+          tile.setAttribute("aria-label", ownerKnown
+            ? `${firstValue} e ${secondValue}, jogada por ${owner}`
+            : `${firstValue} e ${secondValue}, jogada recuperada da API`);
+          tile.title = ownerKnown ? `Jogada de ${owner}` : "Jogada recuperada da API";
           tile.classList.add("board-tile");
-          const badge = document.createElement("span");
-          badge.className = `board-owner ${piece.isBotTile ? "bot" : "human"}`;
-          badge.textContent = piece.isBotTile ? "OP" : "EU";
-          badge.setAttribute("aria-hidden", "true");
-          tile.append(badge);
+          if (ownerKnown) {
+            const badge = document.createElement("span");
+            badge.className = `board-owner ${piece.isBotTile ? "bot" : "human"}`;
+            badge.textContent = piece.isBotTile ? "OP" : "EU";
+            badge.setAttribute("aria-hidden", "true");
+            tile.append(badge);
+          }
           row.append(tile);
         }
 
@@ -855,18 +860,23 @@
         const piece = boardTiles[turn.index];
         // PlacedTile values follow chain order: A connects from the row above, and B continues below.
         const tile = createDomino(piece.leftValue, piece.rightValue, true);
+        const ownerKnown = typeof piece.isBotTile === "boolean";
         const owner = piece.isBotTile ? (state.botName || "Adversário") : "Você";
-        tile.setAttribute("aria-label", `${piece.leftValue} e ${piece.rightValue}, jogada por ${owner}; peça de virada`);
-        tile.title = `Jogada de ${owner} · virada da sequência`;
+        tile.setAttribute("aria-label", ownerKnown
+          ? `${piece.leftValue} e ${piece.rightValue}, jogada por ${owner}; peça de virada`
+          : `${piece.leftValue} e ${piece.rightValue}, jogada recuperada da API; peça de virada`);
+        tile.title = ownerKnown ? `Jogada de ${owner} · virada da sequência` : "Jogada recuperada da API · virada da sequência";
         tile.classList.add("board-tile", "turn-connector");
         tile.style.left = `${turn.left}px`;
         tile.style.top = `${turn.top}px`;
         tile.style.zIndex = String(turnIndex * 2 + 2);
-        const badge = document.createElement("span");
-        badge.className = `board-owner ${piece.isBotTile ? "bot" : "human"}`;
-        badge.textContent = piece.isBotTile ? "ADV" : "EU";
-        badge.setAttribute("aria-hidden", "true");
-        tile.append(badge);
+        if (ownerKnown) {
+          const badge = document.createElement("span");
+          badge.className = `board-owner ${piece.isBotTile ? "bot" : "human"}`;
+          badge.textContent = piece.isBotTile ? "ADV" : "EU";
+          badge.setAttribute("aria-hidden", "true");
+          tile.append(badge);
+        }
         board.append(tile);
       }
     }

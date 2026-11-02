@@ -30,7 +30,7 @@ public sealed record LobbyView(
     int MatchParticipants,
     bool CanStartOnlineMatch);
 
-public sealed record BoardTileView(int LeftValue, int RightValue, bool IsDouble, bool IsBotTile);
+public sealed record BoardTileView(int LeftValue, int RightValue, bool IsDouble, bool? IsBotTile);
 
 public sealed record MatchView(
     Guid MatchId,
